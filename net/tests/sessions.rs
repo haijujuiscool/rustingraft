@@ -1,6 +1,6 @@
 //! Sessions: solo, and over a real relay on 127.0.0.1.
 
-use raft_net::{Session, Status};
+use raft_net::{new_token, Session, Status};
 use raft_relay::{ClientIncoming, Config, RelayClient, Server};
 use raft_sim::{Event, FlatGround, PlayerId, Request, World, V3};
 use std::thread;
@@ -62,8 +62,9 @@ fn host_and_two_clients_play_together() {
     });
     let code = host.room_code().unwrap().to_string();
 
-    let mut a = Session::join(&addr, &code.to_lowercase(), "Ana");
-    let mut b = Session::join(&addr, &code, "Bo");
+    let (ta, tb) = (new_token(), new_token());
+    let mut a = Session::join(&addr, &code.to_lowercase(), "Ana", &ta);
+    let mut b = Session::join(&addr, &code, "Bo", &tb);
     assert!(!a.is_host() && a.world().is_none() && a.me().is_none());
     assert_eq!(a.status(), Status::Connecting);
     until(
@@ -156,6 +157,24 @@ fn host_and_two_clients_play_together() {
     });
     assert_eq!(host.peer_count(), 1);
 
+    // Only Bo's token gets Bo's entry back.
+    let mut fake = Session::join(&addr, &code, "Bo", &new_token());
+    until(
+        &mut [&mut host, &mut a, &mut fake],
+        &mut log,
+        "impostor refused",
+        |s, _| s[2].status() == Status::Closed("name taken".into()),
+    );
+    let mut b = Session::join(&addr, &code, "Bo", &tb);
+    until(
+        &mut [&mut host, &mut a, &mut b],
+        &mut log,
+        "Bo back",
+        |s, _| s[2].status() == Status::Playing,
+    );
+    assert_eq!(b.me(), Some(mb));
+    assert_eq!(host.peer_count(), 2);
+
     drop(host);
     until(&mut [&mut a], &mut log, "host left", |s, _| {
         s[0].status() == Status::Closed("Host left".into())
@@ -193,20 +212,20 @@ fn bad_clients_are_ignored_or_rejected() {
     assert_eq!(host.peer_count(), 0);
     assert_eq!(host.world().unwrap().connected().count(), 1);
 
-    let mut taken = Session::join(&addr, &code, "Hana");
+    let mut taken = Session::join(&addr, &code, "Hana", &new_token());
     let other = if code.starts_with('Z') {
         "YYYYYY"
     } else {
         "ZZZZZZ"
     };
-    let mut lost = Session::join(&addr, other, "Ana");
+    let mut lost = Session::join(&addr, other, "Ana", &new_token());
     until(
         &mut [&mut host, &mut taken, &mut lost],
         &mut log,
         "refusals",
         |s, _| {
             matches!(s[2].status(), Status::Closed(_))
-                && s[1].status() == Status::Closed("name in use".into())
+                && s[1].status() == Status::Closed("name taken".into())
         },
     );
 }

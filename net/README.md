@@ -7,13 +7,14 @@ engine dependency.
 ## API
 
 ```rust
-pub const PROTOCOL_VERSION: u32;
+pub const PROTOCOL_VERSION: u32; // 2
+pub fn new_token() -> String;      // 128 random bits as 32 hex digits
 pub enum Status { Connecting, Playing, Closed(String) }
 
 impl Session {
     pub fn solo(world: World, name: &str) -> Result<Session, String>;
     pub fn host(relay_addr: &str, world: World, name: &str) -> Session;
-    pub fn join(relay_addr: &str, code: &str, name: &str) -> Session;
+    pub fn join(relay_addr: &str, code: &str, name: &str, token: &str) -> Session;
     pub fn update(&mut self, dt: f32, ground: &dyn Ground) -> Vec<Event>; // once per fixed tick
     pub fn request(&mut self, req: Request);
     pub fn world(&self) -> Option<&World>;
@@ -23,6 +24,7 @@ impl Session {
     pub fn status(&self) -> Status;
     pub fn replace_world(&mut self, world: World); // host only
     pub fn save_json(&self) -> Option<String>;     // host only
+    pub fn restore_owners(&mut self, save_json: &str); // host only
     pub fn peer_count(&self) -> usize;
 }
 ```
@@ -35,8 +37,28 @@ impl Session {
   apply to the mirror at once.
 - Clients keep their own pose (and the pose of the boat they drive) instead of the host
   snapshot. A `PlayerTeleport` event for the client moves it.
+- A client passes the same `token` every time. Make it once per install with `new_token()`
+  and keep it in the settings.
 - Link loss on a client gives `Closed("Host left")`. The host stays `Playing` after its
   clients leave.
+
+## Identity and limits
+
+- The host stores an owner for each entry a client creates: a keyed SipHash-2-4 of the
+  token under a random key. The token itself is never saved.
+- A name that already has an entry is given only to the token that created it. Otherwise
+  the client gets `Reject("name taken")`. Clients cannot take entries without an owner
+  (the host's own entries, or a save whose owners were not restored).
+- `save_json` adds a `net_owners` object to the world JSON, and `World::load` ignores it.
+  After `solo`, `host` or `replace_world` with a loaded save, call
+  `restore_owners(&save_json)`. Without it, nobody can take back an entry from that save.
+  If a connected client plays a name that the save gives to another token, the host
+  disconnects that client.
+- Clients can create new entries only while the world holds fewer than 16. After that, a
+  new name gets `Reject("world full")`. Returning names still join.
+- Each request acts as the sender's own player, which the host finds by relay client id.
+  No payload names a player to act as.
+- The host drops a client message longer than 1024 bytes without reading it.
 
 ## Protocol
 
@@ -44,8 +66,10 @@ Each relay frame holds one JSON message.
 
 Client to host (`ToHost`):
 
-- `Hello { version, name }`: first message. A wrong version gets `Reject("Version mismatch")`.
-  A refused name gets `Reject` with the reason from `World::join`.
+- `Hello { version, name, token }`: first message. A wrong version gets
+  `Reject("Version mismatch")`, and a token that is not 32 hex digits gets
+  `Reject("bad token")`. A refused name gets `Reject` with `"name taken"`, `"world full"`
+  or the reason from `World::join`.
 - `Req(Request)`: any request except movement. Sent at once.
 - `Pose(Request)`: the latest `PlayerTransform` or `BoatTransform`.
 

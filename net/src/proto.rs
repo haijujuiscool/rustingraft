@@ -7,10 +7,13 @@ use serde_json::Value;
 /// Client -> host.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ToHost {
-    /// First message after the relay join.
+    /// First message after the relay join. `token`: 32 hex digits, kept per install.
     Hello {
         version: u32,
         name: String,
+        /// Missing in version 1, so old clients still get "Version mismatch".
+        #[serde(default)]
+        token: String,
     },
     Req(Request),
     /// Throttled movement: `PlayerTransform` or `BoatTransform`.
@@ -129,9 +132,12 @@ mod tests {
         let msg = ToHost::Hello {
             version: 7,
             name: "Ana".into(),
+            token: "ab".into(),
         };
         let back: ToHost = serde_json::from_slice(&serde_json::to_vec(&msg).unwrap()).unwrap();
-        assert!(matches!(back, ToHost::Hello { version: 7, name } if name == "Ana"));
+        assert!(
+            matches!(back, ToHost::Hello { version: 7, name, token } if name == "Ana" && token == "ab")
+        );
         let msg = ToClient::Welcome {
             player_id: 3,
             world: Box::new(World::new(4)),
