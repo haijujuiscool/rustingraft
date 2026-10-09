@@ -21,7 +21,7 @@ pub struct Game {
     settings: Settings,
     /// Events from the ticks since the last frame.
     events: Vec<Event>,
-    /// Sampled on the first tick of the first session.
+    /// Sampled during menu ticks, finished before a session starts.
     ground: Option<SceneGround>,
     has_save: bool,
     notice: Option<String>,
@@ -35,7 +35,7 @@ impl Game {
         let base_look = scene
             .player(player::PLAYER)
             .map_or(0.002, |pc| pc.look_sensitivity);
-        let game = Game {
+        let mut game = Game {
             phase: AppPhase::MainMenu,
             session: None,
             view: View::default(),
@@ -49,6 +49,7 @@ impl Game {
             base_look,
         };
         game.apply_settings(scene);
+        game.local.clear(scene);
         game
     }
 
@@ -59,11 +60,23 @@ impl Game {
             scene.set_counter("autostart", 2);
             self.act(scene, UiAction::StartSolo);
         }
+        // Scenarios show the game over screen with `ui_force_game_over` 1.
+        if self.phase == AppPhase::Playing && scene.counter_or("ui_force_game_over", 0) == 1 {
+            scene.set_counter("ui_force_game_over", 0);
+            self.phase = AppPhase::GameOver;
+        }
+        // View scenario hooks (`view_skip_to`, `view_fire_level`, ...; see `view::hooks`).
+        if let Some(s) = self.session.as_mut() {
+            if let Some(w) = s.world().and_then(|w| crate::view::hooks(scene, w)) {
+                s.replace_world(w);
+            }
+        }
         scene.set_counter("phase", self.phase as i32);
+        let ground = self.ground.get_or_insert_with(|| SceneGround::new(scene));
         let Some(session) = self.session.as_mut() else {
+            ground.sample_for(scene, std::time::Duration::from_millis(6));
             return;
         };
-        let ground = self.ground.get_or_insert_with(|| SceneGround::build(scene));
         let events = session.update(TICK_DT, ground);
         for event in &events {
             match event {
@@ -149,6 +162,13 @@ impl Game {
     }
 
     pub fn act(&mut self, scene: &mut GameScene, action: UiAction) {
+        // Before any session exists, so its connect timeout does not run during the sampling.
+        if matches!(
+            action,
+            UiAction::StartSolo | UiAction::LoadWorld | UiAction::Host { .. } | UiAction::Join { .. }
+        ) {
+            self.ground.get_or_insert_with(|| SceneGround::new(scene)).finish(scene);
+        }
         match action {
             UiAction::Request(req) => {
                 if let Some(session) = self.session.as_mut() {
@@ -210,7 +230,7 @@ impl Game {
             session.restore_owners(text);
         }
         self.view.clear(scene);
-        self.local = Local::default();
+        self.local.clear(scene);
         self.events.clear();
         self.notice = None;
         self.session = Some(session);
@@ -219,6 +239,7 @@ impl Game {
 
     fn to_menu(&mut self, scene: &mut GameScene, notice: Option<String>) {
         self.view.clear(scene);
+        self.local.clear(scene);
         self.session = None;
         self.events.clear();
         self.notice = notice;

@@ -1,0 +1,12 @@
+{"name": "The harpoon hits a floating plank and pulls it in", "seed": 7, "ticks": 140, "files": {"world.json": "fixtures/player_world.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [-3.5, 1.35, 0.0]}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 1.5708}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.29}},
+  {"tick": 40, "tap": "slot1"},
+  {"tick": 50, "tap": "use"},
+  {"tick": 51, "within": 55, "expect": {"counter": "player_shots", "equals": 1}},
+  {"tick": 51, "within": 70, "expect": {"counter": "player_dragging", "equals": 1}},
+  {"tick": 58, "capture": "shots/player_harpoon.png"}
+]}

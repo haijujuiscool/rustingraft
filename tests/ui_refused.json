@@ -1,0 +1,8 @@
+{"name": "Host online with no relay running: the menu explains why", "seed": 9, "ticks": 640, "steps": [
+  {"tick": 5, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 5, "click": "Host online"},
+  {"tick": 6, "within": 20, "expect": {"counter": "phase", "equals": 1}},
+  {"tick": 8, "within": 600, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 602, "click": {"starts_with": "Could not reach the relay"}},
+  {"tick": 605, "capture": "shots/ui_notice.png"}
+]}

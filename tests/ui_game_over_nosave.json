@@ -1,0 +1,12 @@
+{"name": "Game over without a save: Load last save is greyed out, Main menu works", "seed": 7, "ticks": 90, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 30, "set": {"counter": "ui_force_game_over", "value": 1}},
+  {"tick": 31, "within": 35, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 45, "capture": "shots/ui_game_over_nosave.png"},
+  {"tick": 50, "click": "Load last save"},
+  {"tick": 60, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 65, "click": "Main menu"},
+  {"tick": 66, "within": 70, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 80, "capture": "shots/ui_menu_after_game_over.png"}
+]}

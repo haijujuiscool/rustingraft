@@ -1,0 +1,14 @@
+{"name": "The harpoon grapples onto Hook Isle and pulls the swimmer to the hit point", "seed": 7, "ticks": 220, "files": {"world.json": "fixtures/player_grapple.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.0}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.1}},
+  {"tick": 50, "expect": {"counter": "player_grapple_gap", "equals": -1}},
+  {"tick": 60, "tap": "use"},
+  {"tick": 61, "within": 70, "expect": {"counter": "player_shots", "equals": 1}},
+  {"tick": 61, "within": 200, "expect": {"counter": "player_grapple_gap", "greater_than": -1}},
+  {"tick": 61, "within": 200, "expect": {"counter": "player_grapple_gap", "less_than": 150}},
+  {"tick": 61, "within": 200, "expect": {"entity": "Player", "path": "/transform/position/2", "less_than": -24.0}},
+  {"tick": 90, "capture": "shots/player_grapple.png"},
+  {"tick": 200, "capture": "shots/player_grapple_end.png"}
+]}

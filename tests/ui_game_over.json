@@ -1,0 +1,15 @@
+{"name": "Game over with a save: Load last save brings the world back", "seed": 7, "ticks": 120, "files": {"world.json": "fixtures/ui_world.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 40, "set": {"counter": "ui_force_game_over", "value": 1}},
+  {"tick": 41, "within": 45, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 55, "capture": "shots/ui_game_over_save.png"},
+  {"tick": 60, "click": "Load last save"},
+  {"tick": 61, "within": 70, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 75, "expect": {"counter": "coins", "equals": 95}},
+  {"tick": 75, "expect": {"counter": "campfire_level", "equals": 3}},
+  {"tick": 90, "set": {"counter": "ui_force_game_over", "value": 1}},
+  {"tick": 91, "within": 95, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 100, "click": "Main menu"},
+  {"tick": 101, "within": 105, "expect": {"counter": "phase", "equals": 0}}
+]}

@@ -1,188 +1,256 @@
 //! egui menus, HUD and windows. Reads `UiState`, returns `UiAction`s; never moves scene
 //! objects (that is `view` and `player`).
+//!
+//! - `menu`: main menu, connecting, pause, settings, leave/quit confirmation, game over.
+//! - `hud`: vitals, hotbar, compass, clock, prompts, toasts, fishing bar, build hints.
+//! - `windows`: sac, workbench, campfire, logbook, Barnaby, trader, radio.
+//!
+//! Test hooks (counters): set `ui_open` to 1..=6 to open a `Window` (Workbench,
+//! Campfire, Logbook, Fisherman, Trader, Radio in that order), 7 for the sac, 8 for
+//! the pause menu. `ui_window` reads what is open: 0 nothing, 1..=6 a `Window`, 7 sac,
+//! 8 pause menu, 9 settings, 10 leave/quit confirmation. `ui_force_game_over` 1 (in
+//! app.rs) shows the game over screen. tests/fixtures/ui_world.json fills every window;
+//! `windows::tests::write_ui_world` writes it.
 
-use crate::shared::{AppPhase, Frame, LocalHud, UiAction, UiState};
-use raft_sim::Event;
-use rusting_engine::egui::{self, Align2, Color32, RichText};
+mod hud;
+mod menu;
+mod style;
+mod windows;
+
+use crate::shared::{AppPhase, Settings, UiAction, UiState, Window};
 use rusting_engine::prelude::GameScene;
 
 const TOAST_SECONDS: f32 = 4.0;
+const MAX_TOASTS: usize = 5;
+
+/// A game window over the HUD.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Open {
+    Sac,
+    Win(Window),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Confirm {
+    Leave,
+    Quit,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ToastKind {
+    Info,
+    Denied,
+    Gained,
+}
+
+struct Toast {
+    text: String,
+    kind: ToastKind,
+    left: f32,
+    /// Identical toasts in a row merge into one "x3".
+    count: u32,
+}
+
+/// Display names of the scene's bindings, read once.
+#[derive(Default)]
+struct Keys {
+    interact: String,
+    sac: String,
+    build: String,
+    rotate: String,
+    camera: String,
+    pause: String,
+    use_tool: String,
+    aim: String,
+}
 
 #[derive(Default)]
 pub struct Ui {
-    /// Menu text fields, seeded from the settings on first draw.
-    relay: Option<String>,
-    name: String,
+    /// Main-menu name field, seeded from the settings.
+    name: Option<String>,
     code: String,
     host_load: bool,
-    toasts: Vec<(String, f32)>,
+    toasts: Vec<Toast>,
+    open: Option<Open>,
+    paused: bool,
+    /// The settings being edited while the Settings window is open.
+    editing: Option<Settings>,
+    confirm: Option<Confirm>,
+    /// Sac slot picked in the sac window.
+    picked: Option<usize>,
+    /// This Ui paused the scene (solo pause menu).
+    we_paused: bool,
+    /// Scale the egui style was last built for.
+    scale: f32,
+    phase: Option<AppPhase>,
+    keys: Option<Keys>,
 }
 
 impl Ui {
     pub fn draw(&mut self, scene: &mut GameScene, state: &UiState) -> Vec<UiAction> {
+        if self.keys.is_none() {
+            self.keys = Some(read_keys(scene));
+        }
         let ctx = scene.ui();
-        let mut actions = Vec::new();
-        match state.phase {
-            AppPhase::MainMenu => self.main_menu(&ctx, state, &mut actions),
-            AppPhase::Connecting => {
-                center_window(&ctx, "Connecting", |ui| {
-                    ui.label("Connecting to the relay...");
-                    if ui.button("Cancel").clicked() {
-                        actions.push(UiAction::ToMenu);
-                    }
-                });
+        let s = style::scale(&ctx);
+        if s != self.scale {
+            style::apply(&ctx, s);
+            self.scale = s;
+        }
+        if self.phase != Some(state.phase) {
+            self.phase = Some(state.phase);
+            self.open = None;
+            self.paused = false;
+            self.editing = None;
+            self.confirm = None;
+            self.picked = None;
+            self.toasts.clear();
+        }
+        let mut out = Vec::new();
+        let frame = state.frame.filter(|_| state.phase == AppPhase::Playing);
+        if let Some(frame) = frame {
+            self.input(scene, state);
+            let solo = frame.is_host && frame.room_code.is_none() && frame.peers == 0;
+            let pause = self.paused && solo;
+            if pause != scene.paused() && (pause || self.we_paused) {
+                scene.set_paused(pause);
+                self.we_paused = pause;
             }
+        } else if self.we_paused {
+            scene.set_paused(false);
+            self.we_paused = false;
+        }
+
+        match state.phase {
+            AppPhase::MainMenu => self.main_menu(&ctx, state, &mut out),
+            AppPhase::Connecting => self.connecting(&ctx, state, &mut out),
             AppPhase::Playing => {
                 if let Some(frame) = state.frame {
-                    self.hud(&ctx, frame, state.hud);
+                    self.hud(&ctx, scene, frame, state.hud);
+                    self.windows(&ctx, frame, &mut out);
+                    self.pause_menu(&ctx, frame, state.settings, &mut out);
                 }
             }
-            AppPhase::GameOver => {
-                let host = state.frame.is_none_or(|f| f.is_host);
-                center_window(&ctx, "Game over", |ui| {
-                    ui.label("Everyone is down.");
-                    if !host {
-                        ui.label("Waiting for the host...");
-                        return;
-                    }
-                    if ui
-                        .add_enabled(state.has_save, egui::Button::new("Load last save"))
-                        .clicked()
-                    {
-                        actions.push(UiAction::LoadLastSave);
-                    }
-                    if ui.button("Main menu").clicked() {
-                        actions.push(UiAction::ToMenu);
-                    }
-                });
-            }
+            AppPhase::GameOver => self.game_over(&ctx, state, &mut out),
         }
-        // TODO(ui): pause menu (Esc, warns that unsaved progress is lost), settings window
-        // (UiAction::SetSettings), sac (Tab), build menu (B -> BeginPlacement), crafting,
-        // logbook/save, Barnaby's and the trader's shops, quests, hotbar, compass, fishing
-        // reel bar from `hud.fishing`, downed/revive overlay.
-        actions
+        self.settings_window(&ctx, state, &mut out);
+        scene.set_counter("ui_window", self.window_code());
+        out
     }
 
     /// True while a window owns the pointer: the player ignores gameplay input.
     pub fn modal(&self) -> bool {
-        false
+        self.open.is_some() || self.paused || self.editing.is_some() || self.confirm.is_some()
     }
 
-    fn main_menu(&mut self, ctx: &egui::Context, state: &UiState, actions: &mut Vec<UiAction>) {
-        if self.relay.is_none() {
-            self.relay = Some(state.settings.relay.clone());
-            self.name = state.settings.name.clone();
-        }
-        let relay = self.relay.as_mut().expect("seeded above");
-        center_window(ctx, "Rusting Raft", |ui| {
-            if let Some(notice) = state.notice {
-                ui.colored_label(Color32::LIGHT_RED, notice_text(notice));
-            }
-            if ui.button("New world").clicked() {
-                actions.push(UiAction::StartSolo);
-            }
-            if ui
-                .add_enabled(state.has_save, egui::Button::new("Load world"))
-                .clicked()
-            {
-                actions.push(UiAction::LoadWorld);
-            }
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label("Name");
-                ui.text_edit_singleline(&mut self.name);
-            });
-            ui.horizontal(|ui| {
-                ui.label("Relay");
-                ui.text_edit_singleline(relay);
-            });
-            ui.add_enabled(
-                state.has_save,
-                egui::Checkbox::new(&mut self.host_load, "Host the saved world"),
-            );
-            if ui.button("Host online").clicked() {
-                actions.push(UiAction::Host {
-                    relay: relay.trim().to_string(),
-                    name: self.name.trim().to_string(),
-                    load: self.host_load && state.has_save,
-                });
-            }
-            ui.horizontal(|ui| {
-                ui.label("Room code");
-                ui.text_edit_singleline(&mut self.code);
-            });
-            if ui.button("Join online").clicked() {
-                actions.push(UiAction::Join {
-                    relay: relay.trim().to_string(),
-                    code: self.code.trim().to_uppercase(),
-                    name: self.name.trim().to_string(),
-                });
-            }
-            ui.separator();
-            if ui.button("Quit").clicked() {
-                actions.push(UiAction::Quit);
-            }
-        });
-    }
-
-    fn hud(&mut self, ctx: &egui::Context, frame: &Frame, hud: &LocalHud) {
-        for event in frame.events {
-            match event {
-                Event::Toast { player, text } if player.is_none_or(|p| p == frame.me) => {
-                    self.toasts.push((text.clone(), TOAST_SECONDS));
-                }
-                Event::Denied { player, reason } if *player == frame.me => {
-                    self.toasts.push((reason.clone(), TOAST_SECONDS));
-                }
+    /// Esc, Tab, `LocalHud.open` and the `ui_open` test hook.
+    fn input(&mut self, scene: &mut GameScene, state: &UiState) {
+        let hook = scene.counter_or("ui_open", 0);
+        if hook != 0 {
+            scene.set_counter("ui_open", 0);
+            match hook {
+                1..=6 => self.show(Open::Win(WINDOWS[hook as usize - 1])),
+                7 => self.show(Open::Sac),
+                8 => self.paused = true,
                 _ => {}
             }
         }
-        self.toasts.retain_mut(|(_, left)| {
-            *left -= frame.dt;
-            *left > 0.0
-        });
-
-        let world = frame.world;
-        let Some(me) = world.player(frame.me) else {
-            return;
-        };
-        egui::Area::new(egui::Id::new("hud.vitals"))
-            .anchor(Align2::LEFT_BOTTOM, [12.0, -12.0])
-            .show(ctx, |ui| {
-                ui.label(big(format!(
-                    "HP {:.0}   Hunger {:.0}",
-                    me.health, me.hunger
-                )));
-                ui.label(big(format!("Coins {}", me.coins)));
-            });
-        let clock = &world.clock;
-        let hours = (clock.time / raft_sim::content::CYCLE_SECONDS * 24.0 + 6.0) % 24.0;
-        egui::Area::new(egui::Id::new("hud.clock"))
-            .anchor(Align2::RIGHT_TOP, [-12.0, 12.0])
-            .show(ctx, |ui| {
-                ui.label(big(format!(
-                    "Day {}  {:02}:{:02}",
-                    clock.day,
-                    hours as u32,
-                    (hours.fract() * 60.0) as u32
-                )));
-                if let Some(code) = frame.room_code {
-                    ui.label(big(format!("Room {code}  ({} online)", frame.peers + 1)));
-                }
-            });
-        if let Some(prompt) = &hud.prompt {
-            egui::Area::new(egui::Id::new("hud.prompt"))
-                .anchor(Align2::CENTER_CENTER, [0.0, 40.0])
-                .show(ctx, |ui| ui.label(big(prompt.clone())));
+        if scene.pressed("pause") {
+            if self.confirm.is_some() {
+                self.confirm = None;
+            } else if self.editing.is_some() {
+                self.editing = None;
+            } else if self.open.is_some() {
+                self.open = None;
+            } else if state.hud.ghost.is_none() {
+                // In placement mode Esc belongs to the player (cancel placement).
+                self.paused = !self.paused;
+            }
+        } else if scene.pressed("sac") && !self.paused && self.editing.is_none() {
+            if self.open == Some(Open::Sac) {
+                self.open = None;
+            } else {
+                self.show(Open::Sac);
+            }
         }
-        egui::Area::new(egui::Id::new("hud.toasts"))
-            .anchor(Align2::CENTER_TOP, [0.0, 60.0])
-            .show(ctx, |ui| {
-                for (text, _) in &self.toasts {
-                    ui.label(big(text.clone()));
-                }
-            });
+        if let Some(window) = state.hud.open {
+            if !self.paused {
+                self.show(Open::Win(window));
+            }
+        }
+    }
+
+    fn show(&mut self, open: Open) {
+        self.open = Some(open);
+        self.picked = None;
+    }
+
+    fn window_code(&self) -> i32 {
+        if self.confirm.is_some() {
+            10
+        } else if self.editing.is_some() {
+            9
+        } else if self.paused {
+            8
+        } else {
+            match self.open {
+                None => 0,
+                Some(Open::Sac) => 7,
+                Some(Open::Win(w)) => WINDOWS.iter().position(|x| *x == w).map_or(0, |i| i as i32 + 1),
+            }
+        }
+    }
+}
+
+/// `ui_open` / `ui_window` numbering.
+const WINDOWS: [Window; 6] = [
+    Window::Workbench,
+    Window::Campfire,
+    Window::Logbook,
+    Window::Fisherman,
+    Window::Trader,
+    Window::Radio,
+];
+
+fn read_keys(scene: &mut GameScene) -> Keys {
+    // Tab and Esc are ui's own keys: bind them when the scene does not.
+    for (action, key) in [("sac", "Tab"), ("pause", "Escape")] {
+        if scene.binding(action).is_empty() {
+            let _ = scene.rebind(action, &[key]);
+        }
+    }
+    let mut key = |action: &str, fallback: &str| {
+        scene
+            .binding(action)
+            .first()
+            .map_or_else(|| fallback.to_string(), |k| key_label(k))
+    };
+    Keys {
+        interact: key("interact", "E"),
+        sac: key("sac", "Tab"),
+        build: key("build", "B"),
+        rotate: key("rotate", "R"),
+        camera: key("camera", "V"),
+        pause: key("pause", "Esc"),
+        use_tool: key("use", "LMB"),
+        aim: key("aim", "RMB"),
+    }
+}
+
+/// `KeyE` -> `E`, `MouseLeft` -> `LMB`, `Escape` -> `Esc`.
+fn key_label(input: &str) -> String {
+    match input {
+        "MouseLeft" => "LMB".into(),
+        "MouseRight" => "RMB".into(),
+        "MouseMiddle" => "MMB".into(),
+        "Escape" => "Esc".into(),
+        "ShiftLeft" | "ShiftRight" => "Shift".into(),
+        "ControlLeft" | "ControlRight" => "Ctrl".into(),
+        other => other
+            .strip_prefix("Key")
+            .or_else(|| other.strip_prefix("Digit"))
+            .unwrap_or(other)
+            .to_string(),
     }
 }
 
@@ -193,18 +261,30 @@ fn notice_text(reason: &str) -> &str {
         "world full" => "This world has no room for new sailors. Rejoin with a name it knows.",
         "bad token" => "The host refused this install's identity token.",
         "Version mismatch" => "The host runs a different version of the game.",
+        other if other.starts_with("relay connection failed") => {
+            "Could not reach the relay. Check the relay address in Settings and that the relay is running."
+        }
         other => other,
     }
 }
 
-fn big(text: String) -> RichText {
-    RichText::new(text).size(18.0).color(Color32::WHITE)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-fn center_window(ctx: &egui::Context, title: &str, body: impl FnOnce(&mut egui::Ui)) {
-    egui::Window::new(title)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-        .collapsible(false)
-        .resizable(false)
-        .show(ctx, body);
+    #[test]
+    fn key_labels_are_short() {
+        assert_eq!(key_label("KeyE"), "E");
+        assert_eq!(key_label("Digit1"), "1");
+        assert_eq!(key_label("MouseLeft"), "LMB");
+        assert_eq!(key_label("Escape"), "Esc");
+        assert_eq!(key_label("Tab"), "Tab");
+    }
+
+    #[test]
+    fn notices_explain_known_reasons() {
+        assert!(notice_text("name taken").contains("name"));
+        assert_eq!(notice_text("Relay unreachable"), "Relay unreachable");
+        assert!(notice_text("relay connection failed: os error 10061").starts_with("Could not reach"));
+    }
 }

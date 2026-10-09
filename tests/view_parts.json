@@ -1,0 +1,10 @@
+{"name": "View: a half-grown wood farm and the shredder cog spinning while it works", "seed": 7, "ticks": 120, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.35}},
+  {"tick": 20, "set": {"counter": "view_skip_to", "value": 150}},
+  {"tick": 20, "expect": {"entity": "raft.structure.3/tpl.shredder.cog", "path": "", "exists": true}},
+  {"tick": 25, "set": {"counter": "view_parts", "value": 1}},
+  {"tick": 60, "capture": "shots/view_parts_1.png"},
+  {"tick": 100, "capture": "shots/view_parts_2.png"}
+]}

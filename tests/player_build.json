@@ -1,0 +1,17 @@
+{"name": "B at the workbench, Place on Raft Floor, then a click places the tile", "seed": 7, "ticks": 130, "files": {"world.json": "fixtures/player_world.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [-3.0, 1.35, -0.2]}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 1.5708}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.93}},
+  {"tick": 45, "tap": "build"},
+  {"tick": 46, "within": 55, "expect": {"counter": "ui_window", "equals": 1}},
+  {"tick": 60, "click": {"text": "Place", "index": 0}},
+  {"tick": 61, "within": 75, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 61, "within": 80, "expect": {"counter": "player_ghost", "equals": 2}},
+  {"tick": 85, "capture": "shots/player_build_ghost.png"},
+  {"tick": 90, "tap": "use"},
+  {"tick": 91, "within": 95, "expect": {"counter": "player_place_requests", "equals": 1}},
+  {"tick": 91, "within": 110, "expect": {"counter": "raft_tiles", "equals": 17}},
+  {"tick": 120, "capture": "shots/player_build_placed.png"}
+]}

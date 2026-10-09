@@ -1,0 +1,16 @@
+{"name": "The club kills a Crawler on the deck", "seed": 7, "ticks": 320, "files": {"world.json": "fixtures/player_melee.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.0}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.3}},
+  {"tick": 40, "expect": {"counter": "enemies", "equals": 1}},
+  {"tick": 45, "tap": "slot3"},
+  {"tick": 50, "expect": {"counter": "player_slot", "equals": 3}},
+  {"tick": 60, "tap": "use"},
+  {"tick": 110, "tap": "use"},
+  {"tick": 160, "tap": "use"},
+  {"tick": 210, "tap": "use"},
+  {"tick": 260, "tap": "use"},
+  {"tick": 61, "within": 300, "expect": {"counter": "enemies", "equals": 0}},
+  {"tick": 66, "capture": "shots/player_melee.png"}
+]}

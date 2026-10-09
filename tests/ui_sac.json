@@ -1,0 +1,13 @@
+{"name": "Tab opens and closes the sac", "seed": 5, "ticks": 90, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 30, "tap": "sac"},
+  {"tick": 31, "within": 34, "expect": {"counter": "ui_window", "equals": 7}},
+  {"tick": 40, "capture": "shots/ui_sac.png"},
+  {"tick": 50, "tap": "sac"},
+  {"tick": 51, "within": 54, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 60, "tap": "sac"},
+  {"tick": 61, "within": 64, "expect": {"counter": "ui_window", "equals": 7}},
+  {"tick": 66, "click": "Close"},
+  {"tick": 67, "within": 70, "expect": {"counter": "ui_window", "equals": 0}}
+]}

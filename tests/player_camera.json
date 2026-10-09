@@ -1,0 +1,14 @@
+{"name": "V switches between third and first person and back", "seed": 7, "ticks": 100, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "expect": {"counter": "player_first_person", "equals": 0}},
+  {"tick": 25, "tap": "slot1"},
+  {"tick": 30, "tap": "camera"},
+  {"tick": 31, "within": 40, "expect": {"counter": "player_first_person", "equals": 1}},
+  {"tick": 31, "within": 40, "expect": {"entity": "Player", "path": "/components/rusting.player_controller/camera_distance", "equals": 0.0}},
+  {"tick": 50, "capture": "shots/player_first_person.png"},
+  {"tick": 60, "tap": "camera"},
+  {"tick": 61, "within": 70, "expect": {"counter": "player_first_person", "equals": 0}},
+  {"tick": 61, "within": 70, "expect": {"entity": "Player", "path": "/components/rusting.player_controller/camera_distance", "equals": 5.0, "tolerance": 0.01}},
+  {"tick": 85, "capture": "shots/player_third_person.png"}
+]}

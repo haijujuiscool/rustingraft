@@ -1,0 +1,19 @@
+{"name": "Board the Dinghy, reverse into the raft without passing it, drive out and jump off", "seed": 7, "ticks": 520, "files": {"world.json": "fixtures/player_boat.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 3.1416}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.2}},
+  {"tick": 50, "tap": "interact"},
+  {"tick": 51, "within": 70, "expect": {"counter": "player_boat", "equals": 1}},
+  {"tick": 75, "press": "player.back"},
+  {"tick": 76, "until": 255, "expect": {"entity": "Player", "path": "/transform/position/2", "greater_than": 5.0}},
+  {"tick": 240, "expect": {"entity": "Player", "path": "/transform/position/2", "less_than": 6.5}},
+  {"tick": 255, "release": "player.back"},
+  {"tick": 260, "press": "player.forward"},
+  {"tick": 261, "within": 420, "expect": {"entity": "Player", "path": "/transform/position/2", "greater_than": 11.0}},
+  {"tick": 330, "capture": "shots/player_boat.png"},
+  {"tick": 410, "release": "player.forward"},
+  {"tick": 440, "tap": "interact"},
+  {"tick": 441, "within": 470, "expect": {"counter": "player_boat", "equals": 0}},
+  {"tick": 441, "within": 500, "expect": {"counter": "player_swimming", "equals": 1}}
+]}

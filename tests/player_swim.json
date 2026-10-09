@@ -1,0 +1,20 @@
+{"name": "Walking off the raft swims without sinking and Space at the edge climbs back", "seed": 7, "ticks": 460, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/transform/position", "value": [0.0, 1.35, -1.0]}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": -1.5708}},
+  {"tick": 40, "press": "player.forward"},
+  {"tick": 41, "within": 140, "expect": {"counter": "player_swimming", "equals": 1}},
+  {"tick": 160, "release": "player.forward"},
+  {"tick": 41, "until": 330, "expect": {"entity": "Player", "path": "/transform/position/1", "greater_than": -2.0}},
+  {"tick": 220, "until": 250, "expect": {"entity": "Player", "path": "/transform/position/1", "equals": -0.3, "tolerance": 0.4}},
+  {"tick": 225, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 1.5708}},
+  {"tick": 240, "capture": "shots/player_swim.png"},
+  {"tick": 250, "press": "player.forward"},
+  {"tick": 250, "press": "player.jump"},
+  {"tick": 260, "within": 400, "expect": {"counter": "player_swimming", "equals": 0}},
+  {"tick": 380, "release": "player.forward"},
+  {"tick": 380, "release": "player.jump"},
+  {"tick": 420, "until": 440, "expect": {"entity": "Player", "path": "/transform/position/1", "equals": 1.35, "tolerance": 0.25}},
+  {"tick": 440, "capture": "shots/player_climb.png"}
+]}

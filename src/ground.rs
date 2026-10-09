@@ -10,47 +10,61 @@ const TOP: f32 = 200.0;
 /// Non-ground colliders (trees, crates) a ray may pass before giving up.
 const MAX_PASSES: usize = 4;
 
-/// One height grid per island, sampled once after the scene loads.
+/// One height grid per island. The main menu samples it a little per tick;
+/// `finish` samples the rest before a session starts.
 pub struct SceneGround {
     islands: Vec<Grid>,
+    ground: std::collections::HashSet<String>,
 }
 
 struct Grid {
     min_x: f32,
     min_z: f32,
     cols: usize,
+    /// Row by row; shorter than `cols * cols` until sampled.
     heights: Vec<Option<f32>>,
 }
 
 impl SceneGround {
-    // ponytail: ~15k rays once at start (each scans every collider); sample per
-    // island on first approach if startup gets slow.
-    pub fn build(scene: &mut GameScene) -> SceneGround {
-        let ground: std::collections::HashSet<String> =
-            scene.in_class("ground").into_iter().collect();
+    pub fn new(scene: &mut GameScene) -> SceneGround {
         let islands = ISLANDS
             .iter()
             .map(|island| {
                 let cols = (2.0 * island.radius / STEP).ceil() as usize + 1;
-                let min_x = island.x - island.radius;
-                let min_z = island.z - island.radius;
-                let mut heights = Vec::with_capacity(cols * cols);
-                for row in 0..cols {
-                    for col in 0..cols {
-                        let x = min_x + col as f32 * STEP;
-                        let z = min_z + row as f32 * STEP;
-                        heights.push(sample(scene, &ground, x, z));
-                    }
-                }
                 Grid {
-                    min_x,
-                    min_z,
+                    min_x: island.x - island.radius,
+                    min_z: island.z - island.radius,
                     cols,
-                    heights,
+                    heights: Vec::with_capacity(cols * cols),
                 }
             })
             .collect();
-        SceneGround { islands }
+        SceneGround {
+            islands,
+            ground: scene.in_class("ground").into_iter().collect(),
+        }
+    }
+
+    /// Samples rows until `budget` has passed; ~15k rays in all, each scans
+    /// every collider, which takes seconds.
+    pub fn sample_for(&mut self, scene: &GameScene, budget: std::time::Duration) {
+        let start = std::time::Instant::now();
+        for g in &mut self.islands {
+            while g.heights.len() < g.cols * g.cols {
+                if start.elapsed() >= budget {
+                    return;
+                }
+                let z = g.min_z + (g.heights.len() / g.cols) as f32 * STEP;
+                for col in 0..g.cols {
+                    let x = g.min_x + col as f32 * STEP;
+                    g.heights.push(sample(scene, &self.ground, x, z));
+                }
+            }
+        }
+    }
+
+    pub fn finish(&mut self, scene: &GameScene) {
+        self.sample_for(scene, std::time::Duration::MAX);
     }
 }
 
@@ -83,7 +97,7 @@ impl raft_sim::Ground for SceneGround {
             if col < 0.0 || row < 0.0 || col as usize >= g.cols || row as usize >= g.cols {
                 return None;
             }
-            g.heights[row as usize * g.cols + col as usize]
+            g.heights.get(row as usize * g.cols + col as usize).copied().flatten()
         })
     }
 }
@@ -103,6 +117,7 @@ mod tests {
         };
         let ground = SceneGround {
             islands: vec![grid],
+            ground: Default::default(),
         };
         assert_eq!(ground.height_at(10.4, -4.0), Some(1.0));
         assert_eq!(ground.height_at(11.6, -3.5), Some(2.0));

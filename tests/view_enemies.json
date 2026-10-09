@@ -1,0 +1,11 @@
+{"name": "View: a Gloomfin lurking off the bow and a Crawler on deck at night, posed in code", "seed": 7, "ticks": 150, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.3}},
+  {"tick": 20, "set": {"counter": "view_skip_to", "value": 330}},
+  {"tick": 25, "set": {"counter": "view_enemies", "value": 1}},
+  {"tick": 50, "capture": "shots/view_enemies_1.png"},
+  {"tick": 80, "capture": "shots/view_enemies_2.png"},
+  {"tick": 81, "expect_pixels": {"differs_from": "shots/view_enemies_1.png", "difference_min": 0.5}},
+  {"tick": 140, "capture": "shots/view_enemies_3.png"}
+]}

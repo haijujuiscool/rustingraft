@@ -1,0 +1,20 @@
+{"name": "View: the campfire grows a clear step per level, 1 to 5, at night", "seed": 7, "ticks": 230, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/transform/position", "value": [-1.5, 1.4, -2.5]}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 3.14}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.3}},
+  {"tick": 20, "set": {"counter": "view_skip_to", "value": 330}},
+  {"tick": 25, "set": {"counter": "view_fire_level", "value": 1}},
+  {"tick": 60, "capture": "shots/view_fire_1.png"},
+  {"tick": 65, "set": {"counter": "view_fire_level", "value": 2}},
+  {"tick": 100, "capture": "shots/view_fire_2.png"},
+  {"tick": 105, "set": {"counter": "view_fire_level", "value": 3}},
+  {"tick": 140, "capture": "shots/view_fire_3.png"},
+  {"tick": 141, "expect": {"entity": "raft.fire.light", "path": "/point_light/range", "equals": 10.0, "tolerance": 0.01}},
+  {"tick": 145, "set": {"counter": "view_fire_level", "value": 4}},
+  {"tick": 180, "capture": "shots/view_fire_4.png"},
+  {"tick": 185, "set": {"counter": "view_fire_level", "value": 5}},
+  {"tick": 220, "capture": "shots/view_fire_5.png"},
+  {"tick": 221, "expect_pixels": {"differs_from": "shots/view_fire_1.png", "difference_min": 2.0}}
+]}

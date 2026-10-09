@@ -1,0 +1,11 @@
+{"name": "Main menu, then New world shows the HUD", "seed": 3, "ticks": 100, "steps": [
+  {"tick": 5, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 6, "capture": "shots/ui_main_menu.png"},
+  {"tick": 8, "click": "New world"},
+  {"tick": 9, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 60, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 70, "capture": "shots/ui_hud.png"},
+  {"tick": 72, "click": {"starts_with": "Day 1"}},
+  {"tick": 74, "click": "Health  100"},
+  {"tick": 76, "click": {"starts_with": "Sac"}}
+]}

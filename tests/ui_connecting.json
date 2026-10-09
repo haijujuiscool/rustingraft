@@ -1,0 +1,15 @@
+{"name": "Host online to a relay that never answers shows the spinner; Cancel returns to the menu", "seed": 9, "ticks": 90, "files": {"settings.json": "fixtures/ui_settings_blackhole.json"}, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "set": {"counter": "ui_force_game_over", "value": 1}},
+  {"tick": 21, "within": 25, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 30, "click": "Main menu"},
+  {"tick": 31, "within": 35, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 40, "click": "Host online"},
+  {"tick": 41, "within": 45, "expect": {"counter": "phase", "equals": 1}},
+  {"tick": 50, "expect": {"counter": "phase", "equals": 1}},
+  {"tick": 50, "capture": "shots/ui_connecting.png"},
+  {"tick": 55, "click": "Cancel"},
+  {"tick": 56, "within": 60, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 70, "capture": "shots/ui_connecting_cancelled.png"}
+]}

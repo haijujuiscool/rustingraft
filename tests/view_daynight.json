@@ -1,0 +1,18 @@
+{"name": "View: ocean, raft and campfire by day, dusk and night", "seed": 7, "ticks": 140, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "expect": {"entity": "view.ocean", "path": "", "exists": true}},
+  {"tick": 20, "expect": {"entity": "raft.tile.0.0", "path": "", "exists": true}},
+  {"tick": 20, "expect": {"entity": "Spawn Platform", "path": "", "exists": false}},
+  {"tick": 20, "expect": {"entity": "raft.fire.light", "path": "/point_light/range", "equals": 6.0, "tolerance": 0.01}},
+  {"tick": 20, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.2}},
+  {"tick": 20, "set": {"counter": "view_skip_to", "value": 150}},
+  {"tick": 40, "capture": "shots/view_day.png"},
+  {"tick": 41, "set": {"counter": "view_skip_to", "value": 289}},
+  {"tick": 70, "capture": "shots/view_dusk.png"},
+  {"tick": 71, "set": {"counter": "view_skip_to", "value": 330}},
+  {"tick": 100, "capture": "shots/view_night.png"},
+  {"tick": 101, "expect_pixels": {"differs_from": "shots/view_day.png", "difference_min": 20.0}},
+  {"tick": 102, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 3.14}},
+  {"tick": 130, "capture": "shots/view_night_back.png"}
+]}

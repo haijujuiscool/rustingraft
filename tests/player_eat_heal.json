@@ -1,0 +1,16 @@
+{"name": "Slot 4 eats cooked fish and slot 5 uses a bandage", "seed": 7, "ticks": 170, "files": {"world.json": "fixtures/player_eat_heal.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 38, "expect": {"counter": "hunger", "less_than": 45}},
+  {"tick": 38, "expect": {"counter": "hp", "less_than": 55}},
+  {"tick": 40, "tap": "slot4"},
+  {"tick": 48, "expect": {"counter": "player_slot", "equals": 4}},
+  {"tick": 49, "capture": "shots/player_eat.png"},
+  {"tick": 50, "tap": "use"},
+  {"tick": 51, "within": 80, "expect": {"counter": "hunger", "greater_than": 50}},
+  {"tick": 100, "tap": "slot5"},
+  {"tick": 108, "expect": {"counter": "player_slot", "equals": 5}},
+  {"tick": 109, "capture": "shots/player_heal.png"},
+  {"tick": 110, "tap": "use"},
+  {"tick": 111, "within": 140, "expect": {"counter": "hp", "greater_than": 70}}
+]}
