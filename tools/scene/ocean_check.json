@@ -1,0 +1,169 @@
+{
+ "name": "Scene: islands and shallows under the game's real ocean (manual look, no checks)",
+ "seed": 7,
+ "ticks": 160,
+ "steps": [
+  {
+   "tick": 1,
+   "set": {
+    "counter": "autostart",
+    "value": 1
+   }
+  },
+  {
+   "tick": 2,
+   "within": 20,
+   "expect": {
+    "counter": "phase",
+    "equals": 2
+   }
+  },
+  {
+   "tick": 20,
+   "set": {
+    "counter": "view_skip_to",
+    "value": 150
+   }
+  },
+  {
+   "tick": 40,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     16,
+     5.4,
+     -16
+    ]
+   }
+  },
+  {
+   "tick": 40,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": 0.6747
+   }
+  },
+  {
+   "tick": 40,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.2115
+   }
+  },
+  {
+   "tick": 43,
+   "capture": {
+    "path": "../../build/capture/game_hook.png",
+    "hud": false
+   }
+  },
+  {
+   "tick": 70,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     -14,
+     4.4,
+     -58
+    ]
+   }
+  },
+  {
+   "tick": 70,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": -2.5309
+   }
+  },
+  {
+   "tick": 70,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.1823
+   }
+  },
+  {
+   "tick": 73,
+   "capture": {
+    "path": "../../build/capture/game_hook_back.png",
+    "hud": false
+   }
+  },
+  {
+   "tick": 100,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     -355.4,
+     28.4,
+     -497.3
+    ]
+   }
+  },
+  {
+   "tick": 100,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": 0.8003
+   }
+  },
+  {
+   "tick": 100,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.2914
+   }
+  },
+  {
+   "tick": 103,
+   "capture": {
+    "path": "../../build/capture/game_palm_reef.png",
+    "hud": false
+   }
+  },
+  {
+   "tick": 130,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     -406,
+     10.4,
+     -550
+    ]
+   }
+  },
+  {
+   "tick": 130,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": -0.9505
+   }
+  },
+  {
+   "tick": 130,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.3356
+   }
+  },
+  {
+   "tick": 133,
+   "capture": {
+    "path": "../../build/capture/game_palm_reef_shrine.png",
+    "hud": false
+   }
+  }
+ ]
+}

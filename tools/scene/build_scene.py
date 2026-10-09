@@ -140,11 +140,14 @@ def ent(name, parent=None, pos=(0, 0, 0), rot=(0, 0, 0), scale=1.0, visible=True
     return name
 
 
-def mat(color, rough=0.85, metal=0.0, emissive=(0, 0, 0), unlit=False):
+def mat(color, rough=0.85, metal=0.0, emissive=(0, 0, 0), unlit=False, flat=False):
+    """flat: light each triangle with its face normal (engine 2.2 flat_shading), for terrain."""
     c = list(color) + ([1.0] if len(color) == 3 else [])
-    return {"Inline": {"name": "", "model": "Unlit" if unlit else "Pbr",
-                       "alpha_mode": "Blend" if c[3] < 1 else "Opaque", "base_color": vec(c),
-                       "emissive": vec(emissive), "metallic": metal, "roughness": rough}}
+    m = {"name": "", "model": "Unlit" if unlit else "Pbr", "alpha_mode": "Blend" if c[3] < 1 else "Opaque",
+         "base_color": vec(c), "emissive": vec(emissive), "metallic": metal, "roughness": rough}
+    if flat:
+        m["flat_shading"] = True
+    return {"Inline": m}
 
 
 def fixed(shape, friction=0.8):
@@ -160,9 +163,9 @@ PRIM_BOX = {"Capsule": ((-.5, -1, -.5), (.5, 1, .5))}
 
 
 def prim(name, parent, shape, pos, scale, color, rot=(0, 0, 0), rough=0.85, metal=0.0, emissive=(0, 0, 0),
-         collide=None, ground=False, shadows=True, visible=True, unlit=False):
+         collide=None, ground=False, shadows=True, visible=True, unlit=False, flat=False):
     sec = {"mesh_renderer": {"mesh": {"BuiltinPrimitive": shape},
-                             "material": mat(color, rough, metal, emissive, unlit),
+                             "material": mat(color, rough, metal, emissive, unlit, flat),
                              "cast_shadows": shadows, "receive_shadows": True}}
     if collide == "box":
         sec.update(fixed(box_shape(.5, .5, .5)))
@@ -633,7 +636,7 @@ class Isle:
         yc = top - b
         nm = self.n(thing)
         prim(nm, self.root, "Sphere", (x, yc, z), (2 * a * sx, 2 * b, 2 * a * sz), color, rot=(0, yaw, 0),
-             rough=rough, collide="convex" if ground else None, ground=ground)
+             rough=rough, collide="convex" if ground else None, ground=ground, flat=True)
         if ground:
             self.surf.append(("dome", x, z, a * sx, a * sz, b, yc, yaw))
         return nm
@@ -800,13 +803,26 @@ def shrine(I, i):
     g = I.ground_y(x, z, 2.5)
     rock_h = 5.5
     nm = f"{I.s}.shrine.{i}"
-    model("island/kenney-nature/cliff_block_rock.glb", f"{nm}.rock", I.root, (x, g - 0.6, z), (0, 0.8 + 0.3 * i, 0),
+    ua = math.atan2(z, x)  # seaward; the ramp leaves on the inland side
+    # yaw -ua turns one block face square to the ramp, so the rocks below can hug each face
+    model("island/kenney-nature/cliff_block_rock.glb", f"{nm}.rock", I.root, (x, g - 0.6, z), (0, -ua, 0),
           (4.6, rock_h, 4.6), ground=True)
-    ua = math.atan2(z, x)  # seaward; the ramp leaves on the inland side, so keep that side clear
-    for k, da in enumerate((0.0, 1.1, -1.1, 2.0, -2.0)):  # boulders hide the block's flat sides
-        a = ua + da
-        model(ROCKS[k % 3], f"{nm}.boulder.{k + 1}", I.root, (x + 2.9 * math.cos(a), g - 0.5, z + 2.9 * math.sin(a)),
-              (0, -a + 0.4 * k, 0), (0.8, 1.45 - 0.12 * k, 0.8))
+    # tall rocks in the block's own palette break up all four flat faces; on the inland face they
+    # stand either side of the ramp (out of its 1.1 m half-width) and a low rock sits under its
+    # high end. None has a collider, so the ramp stays clear.
+    k = 0
+    for f in range(4):  # face normals u, left, -u (inland, ramp), right
+        fa = ua + f * PI / 2
+        nx, nz = math.cos(fa), math.sin(fa)
+        for t in ((-1.95, 1.95) if f == 2 else (-1.5, 0.0, 1.5)):
+            rel = f"island/kenney-nature/rock_tall{'AB'[k % 2]}.glb"
+            size = [proto(rel)[1]["max"][q] - proto(rel)[1]["min"][q] for q in range(3)]
+            w, h = (1.5 if f == 2 else 2.1), (4.6, 5.2, 4.2, 5.0, 4.4, 5.3, 4.8)[k % 7]
+            model(rel, f"{nm}.crag.{k + 1}", I.root, (x + nx * 2.55 - nz * t, g - 0.5, z + nz * 2.55 + nx * t),
+                  (0, -fa + PI * (k // 2 % 2), 0), (1.7 / size[0], h / size[1], w / size[2]))
+            k += 1
+    model("island/kenney-nature/rock_largeC.glb", f"{nm}.crag.{k + 1}", I.root,
+          (x - math.cos(ua) * 2.9, g - 0.5, z - math.sin(ua) * 2.9), (0, -ua, 0), (2.0, 7.0, 2.0))
     top = g - 0.6 + rock_h * 1.0
     ent(nm, I.root, (x, top, z))
     model("island/shrine_a.glb", f"{nm}.model", nm, (0, -0.05, 0), (0, yaw_to(-x, -z), 0), 1.0)
@@ -1141,20 +1157,15 @@ def tpl(name, doc):
 TPL_DOCS = []
 
 
-def raft_tile(name, y0):
-    tpl(name, f"Raft floor tile 2x2 m, deck top at local y {y0}"
-              + (" (place at y 0)." if y0 else " (place at cell_center y 0.45).")
-              + f" Child `{name}.collider` is a Fixed box from the water line to the deck top.")
-    model("raft/kenney-pirate/platform.glb", f"{name}.deck", name, (0, y0 - 0.184, 0), (0, 0, 0), (0.8, 0.8, 0.7937))
-    for k, z in enumerate((-0.62, 0.0, 0.62)):
-        prim(f"{name}.log.{k + 1}", name, "Cylinder", (0, y0 - 0.184 - 0.13, z), (0.32, 2.0, 0.32), WOOD_DARK,
-             rot=(0, 0, PI / 2))
-    collider(f"{name}.collider", name, (0, y0 - 0.225, 0), (1.0, 0.225, 1.0))
-
-
 def build_raft_templates():
-    raft_tile("tpl.raft_floor", 0.0)
-    raft_tile("tpl.floor", DECK_Y)
+    name = "tpl.raft_floor"
+    tpl(name, f"Raft floor tile 2x2 m, deck top at local y 0 (place at cell_center y {DECK_Y}). "
+              f"Child `{name}.collider` is a Fixed box from the water line to the deck top.")
+    model("raft/kenney-pirate/platform.glb", f"{name}.deck", name, (0, -0.184, 0), (0, 0, 0), (0.8, 0.8, 0.7937))
+    for k, z in enumerate((-0.62, 0.0, 0.62)):
+        prim(f"{name}.log.{k + 1}", name, "Cylinder", (0, -0.184 - 0.13, z), (0.32, 2.0, 0.32), WOOD_DARK,
+             rot=(0, 0, PI / 2))
+    collider(f"{name}.collider", name, (0, -0.225, 0), (1.0, 0.225, 1.0))
     tpl("tpl.railing", "Railing for one tile edge: origin at the edge midpoint on the deck top, runs 2 m along "
                        "local X, ~1 m tall, Fixed box collider child. rot 0 = North/South edge; turn pi/2 for East/West.")
     model("raft/kenney-survival/fence.glb", "tpl.railing.fence", "tpl.railing", (0, 0, 0), (0, 0, 0), (4.0, 1.9, 4.0))
@@ -1172,34 +1183,65 @@ def build_raft_templates():
     prim("tpl.logbook.stand", "tpl.logbook", "Cube", (0, 0.45, 0), (0.45, 0.9, 0.36), WOOD)
     model("raft/book_open.glb", "tpl.logbook.book", "tpl.logbook", (0, 0.9, 0), (-0.4, 0, 0), 0.7, anchor="center")
 
-    tpl("tpl.shredder", "Shredder hopper (1 tile).")
+    tpl("tpl.shredder", "Shredder hopper (1 tile). Child `tpl.shredder.cog` is a flat gear in the hopper mouth, "
+                        "origin on its hub: spin it about local Y while shredding.")
     model("raft/kenney-factory/hopper-square.glb", "tpl.shredder.model", "tpl.shredder", (0, 0, 0), (0, 0, 0), 0.85)
+    model("raft/kenney-factory/cog-a.glb", "tpl.shredder.cog", "tpl.shredder", (0, 0.86, 0), (0, 0, 0), 0.78,
+          anchor="center")
     collider("tpl.shredder.collider", "tpl.shredder", (0, 0.43, 0), (0.48, 0.43, 0.48))
 
-    tpl("tpl.wood_farm", "Bamboo planter, footprint 2x1 tiles: spans x -2..2, z -1..1 around the origin.")
+    tpl("tpl.wood_farm", "Bamboo planter, footprint 2x1 tiles: spans x -2..2, z -1..1 around the origin. Child "
+                         "`tpl.wood_farm.grow` (origin on the soil, y 0.36) holds the 8 bamboo shoots: scale its Y "
+                         "for cycle progress.")
     prim("tpl.wood_farm.box", "tpl.wood_farm", "Cube", (0, 0.175, 0), (3.8, 0.35, 1.8), WOOD, collide="box")
     prim("tpl.wood_farm.soil", "tpl.wood_farm", "Cube", (0, 0.36, 0), (3.6, 0.04, 1.6), (0.3, 0.2, 0.12),
          shadows=False)
+    ent("tpl.wood_farm.grow", "tpl.wood_farm", (0, 0.36, 0))
     for k, x in enumerate((-1.35, -0.45, 0.45, 1.35)):
         for j, z in enumerate((-0.4, 0.4)):
-            model("raft/kenney-nature/crops_bambooStageB.glb", f"tpl.wood_farm.crop.{k * 2 + j + 1}", "tpl.wood_farm",
-                  (x + 0.12 * j, 0.36, z), (0, k + j, 0), 1.6, tint=(1.3, 1.0, 0.45))
+            model("raft/kenney-nature/crops_bambooStageB.glb", f"tpl.wood_farm.grow.crop.{k * 2 + j + 1}",
+                  "tpl.wood_farm.grow", (x + 0.12 * j, 0, z), (0, k + j, 0), 1.6, tint=(1.3, 1.0, 0.45))
 
-    tpl("tpl.metal_farm", "Scrap press, footprint 2x1 tiles (x -2..2, z -1..1).")
+    tpl("tpl.metal_farm", "Scrap press, footprint 2x1 tiles (x -2..2, z -1..1). Child `tpl.metal_farm.grow` is "
+                          "the scrap pile between press and hopper, origin at its foot on the base (y 0.3): scale "
+                          "its Y for cycle progress.")
     prim("tpl.metal_farm.base", "tpl.metal_farm", "Cube", (0, 0.15, 0), (3.8, 0.3, 1.8), STEEL, metal=0.4, rough=0.6,
          collide="box")
     model("raft/kenney-factory/machine.glb", "tpl.metal_farm.machine", "tpl.metal_farm", (-0.8, 0.3, 0), (0, PI / 2, 0),
           0.9)
     model("raft/kenney-factory/hopper-round.glb", "tpl.metal_farm.hopper", "tpl.metal_farm", (1.0, 0.3, 0), (0, 0, 0),
           0.75)
+    g = ent("tpl.metal_farm.grow", "tpl.metal_farm", (0.24, 0.3, 0.1))
+    prim(f"{g}.heap", g, "Icosahedron", (0, 0, 0), (0.7, 0.55, 0.75), (0.36, 0.33, 0.31), rough=0.7, metal=0.5,
+         flat=True)
+    for k, (pos, rot) in enumerate((((0.2, 0.12, 0.12), (0.4, 0.7, 0.3)), ((-0.22, 0.1, -0.1), (0.9, 0.2, -0.5)),
+                                    ((0.02, 0.22, -0.2), (-0.3, 1.2, 0.8)))):
+        prim(f"{g}.bit.{k + 1}", g, "Cube", pos, (0.16, 0.1, 0.22), RUST, rot=rot, rough=0.8, metal=0.3)
+    for k, (rel, pos, rot, sc) in enumerate((
+            ("debris/kenney-survival/metal-panel-screws-half.glb", (-0.08, 0.06, 0.2), (-0.9, 0.4, 0.2), 0.9),
+            ("debris/kenney-survival/metal-panel-narrow.glb", (0.1, 0.02, -0.12), (0.5, -0.3, -0.35), 0.8),
+            ("debris/kenney-survival/metal-panel-screws-half.glb", (0.08, 0.12, -0.02), (-0.4, 2.0, 0.6), 0.8),
+            ("debris/kenney-factory/cog-e.glb", (-0.05, 0.22, 0.05), (0.35, 0.6, 0.2), 0.34))):
+        model(rel, f"{g}.scrap.{k + 1}", g, pos, rot, sc, tint=RUST_TINT if k % 2 else None)
 
-    tpl("tpl.oil_farm", "Oil still, footprint 2x1 tiles (x -2..2, z -1..1).")
+    tpl("tpl.oil_farm", "Oil still, footprint 2x1 tiles (x -2..2, z -1..1). Child `tpl.oil_farm.grow` is the "
+                        "oil column in the gauge frame beside the tank, origin at its bottom (y 0.36): scale its Y "
+                        "for cycle progress (1 = full).")
     prim("tpl.oil_farm.base", "tpl.oil_farm", "Cube", (0, 0.15, 0), (3.8, 0.3, 1.8), STEEL_DARK, metal=0.4,
          rough=0.6, collide="box")
     model("raft/kenney-industrial/detail-tank.glb", "tpl.oil_farm.tank", "tpl.oil_farm", (-0.6, 0.3, 0), (0, 0, 0), 2.6)
     for k, z in enumerate((-0.45, 0.45)):
         prim(f"tpl.oil_farm.drum.{k + 1}", "tpl.oil_farm", "Cylinder", (1.35, 0.75, z), (0.6, 0.9, 0.6),
              (0.42, 0.1, 0.07), rough=0.5, metal=0.4)
+    for k, y in enumerate((0.33, 1.33)):
+        prim(f"tpl.oil_farm.gauge.cap.{k + 1}", "tpl.oil_farm", "Cylinder", (0.78, y, 0), (0.36, 0.06, 0.36), STEEL,
+             metal=0.6, rough=0.4)
+    for k, dx in enumerate((-0.15, 0.15)):  # open frame, so the oil column shows from every side
+        prim(f"tpl.oil_farm.gauge.rod.{k + 1}", "tpl.oil_farm", "Cylinder", (0.78 + dx, 0.83, 0), (0.04, 1.0, 0.04),
+             STEEL, metal=0.6, rough=0.4)
+    ent("tpl.oil_farm.grow", "tpl.oil_farm", (0.78, 0.36, 0))
+    prim("tpl.oil_farm.grow.oil", "tpl.oil_farm.grow", "Cylinder", (0, 0.47, 0), (0.24, 0.94, 0.24),
+         (0.05, 0.04, 0.035), rough=0.15, metal=0.3)
 
     tpl("tpl.radio_station", "Radio station (1 tile), front -Z.")
     model("raft/radio_q.glb", "tpl.radio_station.model", "tpl.radio_station", (0, 0, 0), (0, PI, 0), 0.85)
@@ -1401,7 +1443,7 @@ def check_coverage():
     want += [f"tpl.{snake(v)}" for v in enum_variants("ItemKind")[:9]]
     want += [f"tpl.enemy.{snake(v)}" for v in enum_variants("EnemyKind")]
     want += [f"tpl.boat.{snake(v)}" for v in enum_variants("BoatKind")]
-    want += ["tpl.raft_floor", "tpl.floor", "tpl.railing", "tpl.avatar", "tpl.trader_boat"]
+    want += ["tpl.raft_floor", "tpl.railing", "tpl.avatar", "tpl.trader_boat"]
     missing = [n for n in want if n not in E]
     assert not missing, f"templates missing for content.rs variants: {missing}"
 
@@ -1533,7 +1575,7 @@ def capture(views):
                   "mesh_renderer": {"mesh": {"BuiltinPrimitive": "Cube"}, "material": mat(SAND),
                                     "cast_shadows": True, "receive_shadows": True}})
     rows = [
-        ["tpl.raft_floor", "tpl.floor", "tpl.railing", "tpl.campfire", "tpl.workbench", "tpl.logbook", "tpl.shredder",
+        ["tpl.raft_floor", "tpl.railing", "tpl.campfire", "tpl.workbench", "tpl.logbook", "tpl.shredder",
          "tpl.wood_farm", "tpl.metal_farm", "tpl.oil_farm", "tpl.radio_station", "tpl.ghost", "tpl.fx.campfire"],
         ["tpl.plank", "tpl.palm_bundle", "tpl.scrap_chunk", "tpl.floating_crate", "tpl.oil_barrel",
          "tpl.crawler_carcass", "tpl.gloomfin_carcass", "tpl.reef_crab_carcass", "tpl.brute_carcass",
@@ -1599,6 +1641,7 @@ def capture(views):
         "hook_back": ("-14,6,-58", "0,1.5,-38"),
         "palm_reef": around("palm_reef", 90, 30),
         "palm_reef_shrine": (f"{-420 + 28 - 14},{12},{-560 + 10}", f"{-420 + 28},{6},{-560}"),
+        "palm_reef_ramp": (f"{-420 + 28 - 16},{3.5},{-560 - 3}", f"{-420 + 28},{3.5},{-560}"),
         "rusted_wreck": around("rusted_wreck", 120, 35, ang=2.4),
         "smoking_rig": around("smoking_rig", 90, 30, ang=1.2, look_h=10),
         "lighthouse": around("lighthouse_atoll", 110, 30, ang=0.5, look_h=8),

@@ -4,5 +4,6 @@
   "main_scene": "scenes/main.rscene",
   "cooked_scene": "build/main.rscene.bin",
   "binary_name": "rustingraft",
-  "window": [1600, 900]
+  "window": [1600, 900],
+  "window_title": "Rusting Raft"
 }
