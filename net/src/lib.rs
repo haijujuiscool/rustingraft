@@ -16,7 +16,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
 /// Bump on any wire change (messages, or the sim types they carry).
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 
 /// Slow sections and own player entries: checked at 4 Hz, sent when changed.
 const SECTION_PERIOD: f64 = 0.25;
@@ -31,7 +31,8 @@ const MAX_IN_BYTES: usize = 1024;
 /// inside one relay frame and the save small.
 const MAX_ENTRIES: usize = 16;
 
-/// A fresh client token: 128 random bits as 32 hex digits. Make one per install and keep it.
+/// 128 random bits as 32 hex digits: the install secret for `Session::join` (make one per
+/// install and keep it), or a world key.
 pub fn new_token() -> String {
     format!("{:016x}{:016x}", random(), random())
 }
@@ -88,26 +89,28 @@ impl Session {
     }
 
     /// Online client via relay + room code. `world()`/`me()` are None until Welcome arrives.
-    /// `token` (see `new_token`) proves this install owns `name` when it comes back.
-    pub fn join(relay_addr: &str, code: &str, name: &str, token: &str) -> Session {
-        let (tx, rx) = mpsc::channel();
+    /// `secret` (see `new_token`, the same one every time) proves this install owns `name`
+    /// when it comes back. It never leaves the client: each world gets a token derived from
+    /// it and that world's key. A secret that is not 32 hex digits gives `Closed("bad token")`.
+    pub fn join(relay_addr: &str, code: &str, name: &str, secret: &str) -> Session {
         let code = code.trim().to_ascii_uppercase();
-        let (addr, room, name) = (relay_addr.to_string(), code.clone(), name.to_string());
-        let token = token.to_string();
-        thread::spawn(move || {
-            let hello = encode(&ToHost::Hello {
-                version: PROTOCOL_VERSION,
-                name,
-                token,
+        let secret = parse_secret(secret);
+        let net = if secret.is_some() {
+            let (tx, rx) = mpsc::channel();
+            let (addr, room) = (relay_addr.to_string(), code.clone());
+            thread::spawn(move || {
+                let link = RelayClient::join(addr, &room).map(|(_, link)| link);
+                let _ = tx.send(link.map_err(|e| e.to_string()));
             });
-            let link = RelayClient::join(addr, &room)
-                .map_err(|e| e.to_string())
-                .and_then(|(_, link)| link.send(&hello).map(|()| link).map_err(|e| e.to_string()));
-            let _ = tx.send(link);
-        });
+            ClientNet::Connecting(rx)
+        } else {
+            ClientNet::Closed("bad token".into())
+        };
         Session(Role::Client(Client {
             code,
-            net: ClientNet::Connecting(rx),
+            name: name.to_string(),
+            secret: secret.unwrap_or_default(),
+            net,
             world: None,
             me: None,
             time: 0.0,
@@ -182,16 +185,16 @@ impl Session {
     }
 
     /// Host only: replace the world (load save / game over reload); re-joins everyone
-    /// connected (by name and token) and resyncs every client with a fresh Welcome. Call
-    /// `restore_owners` with the save as well. No-op on clients.
+    /// connected (by name and token) and resyncs every client with a fresh Welcome. The world
+    /// key stays; call `restore_owners` with the save as well. No-op on clients.
     pub fn replace_world(&mut self, world: World) {
         if let Role::Host(h) = &mut self.0 {
             h.replace_world(world);
         }
     }
 
-    /// Host only: the world JSON for saving, plus who owns each client's entry (token
-    /// hashes). `World::load` reads it as before; pass it to `restore_owners` too.
+    /// Host only: the world JSON for saving, plus the world key and who owns each client's
+    /// entry (token hashes). `World::load` reads it as before; pass it to `restore_owners` too.
     pub fn save_json(&self) -> Option<String> {
         match &self.0 {
             Role::Host(h) => Some(h.save_json()),
@@ -199,10 +202,11 @@ impl Session {
         }
     }
 
-    /// Host only: takes the entry owners from a `save_json` string. Call it after `solo`,
-    /// `host` or `replace_world` with a world loaded from that save; without it no client can
-    /// take back its entry. Clients playing a name the save gives to another token are
-    /// disconnected.
+    /// Host only: takes the world key and entry owners from a `save_json` string. Call it after
+    /// `solo`, `host` or `replace_world` with a world loaded from that save; without it no
+    /// client can take back its entry. A save without a key gets a fresh one, so its owners
+    /// stay locked. When the key changes, connected clients are challenged again; clients
+    /// playing a name the save gives to another token are disconnected.
     pub fn restore_owners(&mut self, save_json: &str) {
         if let Role::Host(h) = &mut self.0 {
             h.restore_owners(save_json);
@@ -234,8 +238,10 @@ enum HostNet {
 struct Peer {
     /// Set once the Hello was accepted.
     player: Option<PlayerId>,
-    /// Token of the accepted Hello.
+    /// Token of the accepted Hello (this world's token for the client's secret).
     token: String,
+    /// Challenges sent that no Hello answered yet. Hellos answer them in order.
+    challenges: u32,
     /// Hash of the last own entry sent.
     entry: Option<u64>,
     /// Messages in the current one-second window.
@@ -254,22 +260,43 @@ impl Owner {
         let key = [random(), random()];
         Owner {
             key,
-            hash: Owner::digest(key, token),
+            hash: sip(key, &[token.as_bytes()]),
         }
     }
 
     fn matches(&self, token: &str) -> bool {
-        Owner::digest(self.key, token) == self.hash
+        sip(self.key, &[token.as_bytes()]) == self.hash
     }
+}
 
-    // std's SipHasher is SipHash-2-4 for good; DefaultHasher may change between Rust
-    // releases, which would lock everyone out of their saved entries.
-    #[allow(deprecated)]
-    fn digest(key: [u64; 2], token: &str) -> u64 {
-        let mut h = std::hash::SipHasher::new_with_keys(key[0], key[1]);
-        h.write(token.as_bytes());
-        h.finish()
+/// SipHash-2-4 of the concatenated `parts`. std's SipHasher is that for good; DefaultHasher
+/// may change between Rust releases, which would lock everyone out of their saved entries.
+#[allow(deprecated)]
+fn sip(key: [u64; 2], parts: &[&[u8]]) -> u64 {
+    let mut h = std::hash::SipHasher::new_with_keys(key[0], key[1]);
+    for part in parts {
+        h.write(part);
     }
+    h.finish()
+}
+
+/// The token `secret` shows the world with `world_key`: 128 bits from two SipHash runs keyed
+/// by the secret. Tokens for different worlds say nothing about each other or the secret.
+fn derive(secret: [u64; 2], world_key: &str) -> String {
+    let half = |tag: &[u8]| sip(secret, &[tag, world_key.as_bytes()]);
+    format!(
+        "{:016x}{:016x}",
+        half(b"raft_net token 0"),
+        half(b"raft_net token 1")
+    )
+}
+
+fn parse_secret(secret: &str) -> Option<[u64; 2]> {
+    if !valid_token(secret) {
+        return None;
+    }
+    let half = |s| u64::from_str_radix(s, 16).ok();
+    Some([half(&secret[..16])?, half(&secret[16..])?])
 }
 
 /// 32 hex digits, as `new_token` makes them.
@@ -291,6 +318,9 @@ struct Host {
     /// Entry name -> the client that created it. Entries without one (the host's own, or a
     /// save whose owners were not restored) cannot be taken by clients.
     owners: BTreeMap<String, Owner>,
+    /// Sent in every Challenge. Client tokens derive from it, so each world sees its own
+    /// token per install. Saved with the owners.
+    world_key: String,
     queued: Vec<Request>,
     /// Hash of the last sent value per `SectionId::ALL` entry.
     sections: [Option<u64>; SectionId::ALL.len()],
@@ -319,6 +349,7 @@ impl Host {
             net,
             peers: BTreeMap::new(),
             owners: BTreeMap::new(),
+            world_key: new_token(),
             queued: Vec::new(),
             sections: Default::default(),
             time: 0.0,
@@ -366,16 +397,7 @@ impl Host {
         let incoming: Vec<HostIncoming> = std::iter::from_fn(|| link.try_recv()).collect();
         for msg in incoming {
             match msg {
-                HostIncoming::Joined(id) => {
-                    // A reused id whose Left has not arrived: free the old player.
-                    if let Some(pid) = self
-                        .peers
-                        .insert(id, Peer::default())
-                        .and_then(|p| p.player)
-                    {
-                        self.world.leave(pid);
-                    }
-                }
+                HostIncoming::Joined(id) => self.joined(id),
                 HostIncoming::Left(id) => self.left(id),
                 HostIncoming::Data { from, bytes } => self.on_data(from, &bytes, ground, events),
                 HostIncoming::Closed(reason) => {
@@ -389,10 +411,31 @@ impl Host {
         }
     }
 
+    fn joined(&mut self, id: u8) {
+        // A reused id whose Left has not arrived: free the old player.
+        self.left(id);
+        self.peers.insert(id, Peer::default());
+        self.challenge(id);
+    }
+
     fn left(&mut self, id: u8) {
         if let Some(pid) = self.peers.remove(&id).and_then(|p| p.player) {
             self.world.leave(pid);
         }
+    }
+
+    /// Asks client `id` for its token under the current world key; it plays no entry until
+    /// its Hello answers.
+    fn challenge(&mut self, id: u8) {
+        let Some(peer) = self.peers.get_mut(&id) else {
+            return;
+        };
+        if let Some(pid) = peer.player.take() {
+            self.world.leave(pid);
+        }
+        peer.challenges += 1;
+        let world_key = self.world_key.clone();
+        self.send(id, &ToClient::Challenge { world_key });
     }
 
     fn on_data(&mut self, from: u8, bytes: &[u8], ground: &dyn Ground, events: &mut Vec<Event>) {
@@ -414,13 +457,18 @@ impl Host {
                 }),
                 None,
             ) => {
+                let open = peer.challenges;
+                peer.challenges = open.saturating_sub(1);
                 let token = token.to_ascii_lowercase();
-                if version != PROTOCOL_VERSION {
-                    self.reject(from, "Version mismatch");
-                } else if !valid_token(&token) {
-                    self.reject(from, "bad token");
-                } else {
-                    let _ = self.admit(from, &name, &token);
+                match open {
+                    _ if version != PROTOCOL_VERSION => self.reject(from, "Version mismatch"),
+                    1 if valid_token(&token) => {
+                        let _ = self.admit(from, &name, &token);
+                    }
+                    // No Challenge to answer, or not a token.
+                    0 | 1 => self.reject(from, "bad token"),
+                    // Answers an older Challenge (world key); the latest one is on its way.
+                    _ => {}
                 }
             }
             (Ok(ToHost::Req(req) | ToHost::Pose(req)), Some(pid)) => {
@@ -498,6 +546,7 @@ impl Host {
         struct Save<'a> {
             #[serde(flatten)]
             world: &'a World,
+            net_world_key: &'a str,
             net_owners: BTreeMap<&'a String, &'a Owner>,
         }
         let net_owners = self
@@ -507,6 +556,7 @@ impl Host {
             .collect();
         let save = Save {
             world: &self.world,
+            net_world_key: &self.world_key,
             net_owners,
         };
         serde_json::to_string(&save).expect("world types always serialize")
@@ -516,12 +566,27 @@ impl Host {
         #[derive(Deserialize)]
         struct Saved {
             #[serde(default)]
+            net_world_key: String,
+            #[serde(default)]
             net_owners: BTreeMap<String, Owner>,
         }
         let Ok(saved) = serde_json::from_str::<Saved>(save_json) else {
             return;
         };
         self.owners.extend(saved.net_owners);
+        // Without a key the save's owners match no token: its entries stay locked.
+        let key = match saved.net_world_key.to_ascii_lowercase() {
+            key if valid_token(&key) => key,
+            _ => new_token(),
+        };
+        if key != self.world_key {
+            self.world_key = key;
+            let ids: Vec<u8> = self.peers.keys().copied().collect();
+            for id in ids {
+                self.challenge(id);
+            }
+            return;
+        }
         let lost: Vec<(u8, PlayerId)> = self
             .peers
             .iter()
@@ -645,6 +710,8 @@ enum ClientNet {
 
 struct Client {
     code: String,
+    name: String,
+    secret: [u64; 2],
     net: ClientNet,
     world: Option<World>,
     me: Option<PlayerId>,
@@ -698,6 +765,12 @@ impl Client {
 
     fn on_message(&mut self, msg: ToClient, events: &mut Vec<Event>) {
         match msg {
+            // Also after the host loads a save; the Welcome that follows resyncs.
+            ToClient::Challenge { world_key } => self.send(&ToHost::Hello {
+                version: PROTOCOL_VERSION,
+                name: self.name.clone(),
+                token: derive(self.secret, &world_key),
+            }),
             ToClient::Welcome { player_id, world } => {
                 self.world = Some(*world);
                 self.me = Some(player_id);
@@ -863,6 +936,8 @@ mod tests {
         let me = host.join("Ana").unwrap();
         let client = Client {
             code: "ABCDEF".into(),
+            name: "Ana".into(),
+            secret: [1, 2],
             net: ClientNet::Closed("test".into()),
             world: Some(host.clone()),
             me: Some(me),
@@ -941,9 +1016,14 @@ mod tests {
         }
     }
 
-    /// Relay client `id` connects and says Hello; the player it got, if any.
+    /// Relay client `id` connects and answers the Challenge; the player it got, if any.
     fn hello(h: &mut Host, id: u8, name: &str, token: &str) -> Option<PlayerId> {
-        h.peers.insert(id, Peer::default());
+        h.joined(id);
+        answer(h, id, name, token)
+    }
+
+    /// Relay client `id` sends a Hello; its player afterwards.
+    fn answer(h: &mut Host, id: u8, name: &str, token: &str) -> Option<PlayerId> {
         let msg = encode(&ToHost::Hello {
             version: PROTOCOL_VERSION,
             name: name.into(),
@@ -1039,5 +1119,61 @@ mod tests {
             "{}",
             welcome.len()
         );
+    }
+
+    #[test]
+    fn tokens_are_per_world() {
+        let secret = parse_secret(&new_token().to_uppercase()).unwrap();
+        assert_eq!(parse_secret("12g4"), None);
+        let (mut a, mut b) = (offline_host(), offline_host());
+        let (a, b) = (host_of(&mut a), host_of(&mut b));
+        let (ta, tb) = (derive(secret, &a.world_key), derive(secret, &b.world_key));
+        assert!(ta != tb && valid_token(&ta) && valid_token(&tb));
+        assert_eq!(derive(secret, &b.world_key), tb);
+        let ana = hello(b, 1, "Ana", &tb).unwrap();
+        b.left(1);
+        // Ana's token for A, replayed on B by host A or anyone on A's path.
+        assert_eq!(hello(b, 2, "Ana", &ta), None);
+        assert_eq!(b.admit(2, "Ana", &ta), Err("name taken"));
+        assert_eq!(hello(b, 2, "Ana", &tb), Some(ana));
+
+        // One Hello per Challenge: none before it, no second try after a refusal.
+        b.peers.insert(3, Peer::default());
+        assert_eq!(answer(b, 3, "Cy", &new_token()), None);
+        assert_eq!(hello(b, 4, "Hana", &new_token()), None);
+        assert_eq!(answer(b, 4, "Cy", &new_token()), None);
+        assert!(!has_entry(&b.world, "Cy"));
+    }
+
+    #[test]
+    fn loading_another_worlds_save_asks_again() {
+        let (ana_secret, bo_secret) = (parse_secret(&new_token()), parse_secret(&new_token()));
+        let (ana_secret, bo_secret) = (ana_secret.unwrap(), bo_secret.unwrap());
+        let mut first = offline_host();
+        let k1 = host_of(&mut first).world_key.clone();
+        let ana = hello(host_of(&mut first), 1, "Ana", &derive(ana_secret, &k1)).unwrap();
+        let save = first.save_json().unwrap();
+
+        let mut s = offline_host();
+        let h = host_of(&mut s);
+        let k2 = h.world_key.clone();
+        hello(h, 1, "Ana", &derive(ana_secret, &k2)).unwrap();
+        h.joined(2); // Bo's answer for k2 is still on its way.
+        s.replace_world(World::load(&save).unwrap());
+        s.restore_owners(&save);
+        let h = host_of(&mut s);
+        assert_eq!(h.world_key, k1);
+        assert_eq!(h.peers[&1].player, None, "challenged again");
+        assert_eq!(answer(h, 2, "Bo", &derive(bo_secret, &k2)), None, "old");
+        assert!(answer(h, 2, "Bo", &derive(bo_secret, &k1)).is_some());
+        assert_eq!(answer(h, 1, "Ana", &derive(ana_secret, &k1)), Some(ana));
+
+        // A save without a key: its owners stay locked.
+        let old = save.replace("net_world_key", "old_key");
+        s.restore_owners(&old);
+        let h = host_of(&mut s);
+        let k3 = h.world_key.clone();
+        assert!(k3 != k1 && valid_token(&k3));
+        assert_eq!(answer(h, 1, "Ana", &derive(ana_secret, &k3)), None);
     }
 }

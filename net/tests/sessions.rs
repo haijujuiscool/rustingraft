@@ -197,20 +197,26 @@ fn bad_clients_are_ignored_or_rejected() {
     raw.send(br#"{"Hello":{"version":999,"name":"Old"}}"#)
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
-    let reply = loop {
+    let mut replies = Vec::new();
+    while replies.len() < 2 {
         assert!(Instant::now() < deadline, "no reply to a wrong version");
         host.update(DT, &FlatGround::WATER);
         if let Some(ClientIncoming::Data(bytes)) = raw.try_recv() {
-            break String::from_utf8(bytes).unwrap();
+            replies.push(String::from_utf8(bytes).unwrap());
         }
         thread::sleep(Duration::from_millis(8));
-    };
+    }
+    assert!(replies[0].contains("Challenge"), "{replies:?}");
     assert!(
-        reply.contains("Reject") && reply.contains("Version mismatch"),
-        "{reply}"
+        replies[1].contains("Reject") && replies[1].contains("Version mismatch"),
+        "{replies:?}"
     );
     assert_eq!(host.peer_count(), 0);
     assert_eq!(host.world().unwrap().connected().count(), 1);
+
+    let mut bad = Session::join(&addr, &code, "Cy", "not hex");
+    assert_eq!(bad.status(), Status::Closed("bad token".into()));
+    assert!(bad.update(DT, &FlatGround::WATER).is_empty());
 
     let mut taken = Session::join(&addr, &code, "Hana", &new_token());
     let other = if code.starts_with('Z') {
@@ -228,6 +234,43 @@ fn bad_clients_are_ignored_or_rejected() {
                 && s[1].status() == Status::Closed("name taken".into())
         },
     );
+}
+
+/// Hosts a fresh world with seed `seed`, returning the session and its room code.
+fn hosted(addr: &str, seed: u64, log: &mut [Vec<Event>]) -> (Session, String) {
+    let mut host = Session::host(addr, World::new(seed), "Hana");
+    until(&mut [&mut host], log, "room code", |s, _| {
+        s[0].status() == Status::Playing
+    });
+    let code = host.room_code().unwrap().to_string();
+    (host, code)
+}
+
+#[test]
+fn loading_another_worlds_save_challenges_again() {
+    let addr = relay();
+    let mut log = vec![Vec::new(); 2];
+    let secret = new_token();
+    let (mut first, code) = hosted(&addr, 1, &mut log);
+    let mut ana = Session::join(&addr, &code, "Ana", &secret);
+    until(&mut [&mut first, &mut ana], &mut log, "welcome", |s, _| {
+        s[1].status() == Status::Playing
+    });
+    let save = first.save_json().unwrap();
+    drop((first, ana));
+
+    // Ana plays a new world on another host, which then loads the first world's save.
+    let (mut host, code) = hosted(&addr, 2, &mut log);
+    let mut ana = Session::join(&addr, &code, "Ana", &secret);
+    until(&mut [&mut host, &mut ana], &mut log, "welcome", |s, _| {
+        s[1].status() == Status::Playing
+    });
+    host.replace_world(World::load(&save).unwrap());
+    host.restore_owners(&save);
+    until(&mut [&mut host, &mut ana], &mut log, "answer", |s, _| {
+        s[0].peer_count() == 1 && s[1].world().unwrap().seed == 1
+    });
+    assert_eq!(ana.status(), Status::Playing);
 }
 
 #[test]

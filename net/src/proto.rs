@@ -7,7 +7,8 @@ use serde_json::Value;
 /// Client -> host.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ToHost {
-    /// First message after the relay join. `token`: 32 hex digits, kept per install.
+    /// The answer to each Challenge. `token`: 32 hex digits derived from the install secret
+    /// and the challenge's world key.
     Hello {
         version: u32,
         name: String,
@@ -23,6 +24,11 @@ pub enum ToHost {
 /// Host -> client.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ToClient {
+    /// First message on join, and again when `restore_owners` changes the key. Keep its
+    /// shape: older and newer clients must still parse it to answer with their version.
+    Challenge {
+        world_key: String,
+    },
     /// Also sent again after `Session::replace_world`.
     Welcome {
         player_id: PlayerId,
