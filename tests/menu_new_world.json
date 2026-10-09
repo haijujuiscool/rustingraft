@@ -1,0 +1,7 @@
+{"name": "The main menu's New world button starts a solo world", "seed": 3, "ticks": 40, "steps": [
+  {"tick": 5, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 5, "click": "New world"},
+  {"tick": 6, "within": 20, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 6, "within": 20, "expect": {"counter": "raft_tiles", "equals": 16}},
+  {"tick": 30, "expect_file": {"path": "settings.json", "contains": "\"token\": \""}}
+]}

@@ -1,0 +1,11 @@
+{"name": "Autostart boots a solo world with the player on the raft", "seed": 7, "ticks": 300, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 2, "within": 10, "expect": {"counter": "raft_tiles", "equals": 16}},
+  {"tick": 2, "within": 10, "expect": {"counter": "day", "equals": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "hp", "equals": 100}},
+  {"tick": 30, "until": 240, "expect": {"entity": "raft.tile.0.0", "path": "/transform/position/1", "equals": 0.45, "tolerance": 0.01}},
+  {"tick": 60, "until": 240, "expect": {"entity": "Player", "path": "/transform/position/1", "equals": 1.35, "tolerance": 0.25}},
+  {"tick": 120, "capture": "shots/boot.png"},
+  {"tick": 240, "expect": {"counter": "time", "greater_than": 2}}
+]}
