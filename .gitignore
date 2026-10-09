@@ -5,3 +5,4 @@
 *.rmesh
 *.rskin
 *.rtexture
+__pycache__/
