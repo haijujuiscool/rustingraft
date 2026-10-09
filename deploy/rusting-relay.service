@@ -1,0 +1,43 @@
+# Rusting Raft relay. Install: see docs/relay.md.
+[Unit]
+Description=Rusting Raft relay server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/raft-relay --bind 0.0.0.0:27777
+Restart=on-failure
+RestartSec=2
+
+# No user account, no privileges, no writable filesystem, no devices beyond the basics.
+DynamicUser=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+UMask=0077
+RestrictAddressFamilies=AF_INET AF_INET6
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+
+# Resource ceilings: 512 connection threads fit under TasksMax, one fd per connection.
+MemoryMax=256M
+TasksMax=600
+LimitNOFILE=2048
+
+[Install]
+WantedBy=multi-user.target

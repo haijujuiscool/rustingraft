@@ -1,0 +1,3 @@
+# shaderc-sys ships an old cmake_minimum_required that CMake 4 rejects.
+[env]
+CMAKE_POLICY_VERSION_MINIMUM = "3.5"

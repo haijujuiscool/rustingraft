@@ -5,8 +5,12 @@ edition = "2021"
 
 [dependencies]
 rusting_engine = { path = "C:\\Users\\juliu\\RustingEngine", default-features = false, features = ["ui"] }
+raft_sim = { path = "sim" }
+raft_relay = { path = "relay" }
+serde = { version = "1", features = ["derive"] }
 
 [workspace]
+members = ["sim", "relay"]
 
 # Debug builds of the engine are too slow to play: optimize dependencies
 # and keep the game's own code quick to rebuild.

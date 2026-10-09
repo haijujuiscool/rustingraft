@@ -1,0 +1,11 @@
+[package]
+name = "raft_relay"
+version = "0.1.0"
+edition = "2021"
+description = "Rusting Raft relay server and game-side relay client (std only)"
+
+[[bin]]
+name = "raft-relay"
+path = "src/main.rs"
+
+[dependencies]
