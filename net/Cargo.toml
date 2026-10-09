@@ -1,0 +1,11 @@
+[package]
+name = "raft_net"
+version = "0.1.0"
+edition = "2021"
+description = "Rusting Raft sessions: solo, relay host and relay client over raft_sim"
+
+[dependencies]
+raft_sim = { path = "../sim" }
+raft_relay = { path = "../relay" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
