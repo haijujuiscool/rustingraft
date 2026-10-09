@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "d089e1f4-b4ef-4c03-85f0-61be3730b225",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "5a460d937ade4ee0",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\survival-kit\\Models\\GLB format\\structure.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/survival-kit",
+    "generator": null,
+    "notes": null
+  }
+}

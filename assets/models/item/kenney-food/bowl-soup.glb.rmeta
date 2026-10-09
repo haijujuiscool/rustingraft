@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "57a5ae8b-4c9c-48e0-9214-5d72de8e29fd",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "c090cb300186db0e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\food-kit\\Models\\GLB format\\bowl-soup.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/food-kit",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "092049f6-a527-404c-9172-2094451e37ec",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "c3e0e9e2bb2310c3",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\pirate-kit\\Models\\GLB format\\chest.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/pirate-kit",
+    "generator": null,
+    "notes": null
+  }
+}

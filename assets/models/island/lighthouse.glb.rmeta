@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "e6a8d319-6f0c-4ddc-aa5d-925be5ef9451",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "40ae70ff9ed70d14",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\lighthouse.glb",
+    "author": "MaverickFX",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/KRebJXIRb8",
+    "generator": null,
+    "notes": null
+  }
+}

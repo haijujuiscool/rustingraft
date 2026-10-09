@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "2451fa38-eb01-48f3-9267-a93c8a553641",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "4f02d006e880610e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\nature-kit\\Models\\GLTF format\\rock_largeB.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/nature-kit",
+    "generator": null,
+    "notes": null
+  }
+}

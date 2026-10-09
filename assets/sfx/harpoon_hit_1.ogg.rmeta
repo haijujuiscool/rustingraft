@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "1a57fe70-4552-49c2-8f34-01abbc60d4e1",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "077143ee04b77d36",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\harpoon_hit_1.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "583d29aa-cd9a-414b-b211-3367d8f91224",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "118953aef00d4cc8",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\factory-kit\\Models\\GLB format\\structure-tall.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/factory-kit",
+    "generator": null,
+    "notes": null
+  }
+}

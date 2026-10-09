@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "cfdfa74a-22e1-4776-bc78-c99b0938abec",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "805ab6c1af471b50",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\pirate-kit\\Models\\GLB format\\tool-shovel.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/pirate-kit",
+    "generator": null,
+    "notes": null
+  }
+}

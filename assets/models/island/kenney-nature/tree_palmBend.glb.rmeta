@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "427f736c-3da4-436c-a3d2-237be2d5d3b7",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "02d33369a4f26206",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\nature-kit\\Models\\GLTF format\\tree_palmBend.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/nature-kit",
+    "generator": null,
+    "notes": null
+  }
+}

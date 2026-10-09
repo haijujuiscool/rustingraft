@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "7adbf26f-05dc-4dbe-8e36-adfb2ab197b7",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "ee865e479b938fc5",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\food-kit\\Models\\GLB format\\pot-stew.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/food-kit",
+    "generator": null,
+    "notes": null
+  }
+}

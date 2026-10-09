@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "e0d51ea0-4598-4040-b0b5-f50a10a76296",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "9060658aeec7e1f1",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\survival-kit\\Models\\GLB format\\tool-pickaxe.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/survival-kit",
+    "generator": null,
+    "notes": null
+  }
+}

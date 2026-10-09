@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "9a10b61f-211f-493f-9195-100ed47c922d",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "20a9497a2f714dd3",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\antenna_b.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/l5Oc9swvKk",
+    "generator": null,
+    "notes": null
+  }
+}

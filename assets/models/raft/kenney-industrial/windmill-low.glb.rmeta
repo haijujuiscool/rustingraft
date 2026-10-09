@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "a7dd0c7c-c525-491c-95d8-76eb370f2d5d",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "d99a956ad039ad92",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\city-kit-industrial\\Models\\GLB format\\windmill-low.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/city-kit-industrial",
+    "generator": null,
+    "notes": null
+  }
+}

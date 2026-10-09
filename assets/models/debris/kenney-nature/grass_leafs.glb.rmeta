@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "500843b6-7b69-4ea5-85ac-0cbcd94aa93c",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "939b1081c7fdf68e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\nature-kit\\Models\\GLTF format\\grass_leafs.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/nature-kit",
+    "generator": null,
+    "notes": null
+  }
+}

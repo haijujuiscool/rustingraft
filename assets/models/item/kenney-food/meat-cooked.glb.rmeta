@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "86139d36-381b-4c5b-afc9-956b7429b32f",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "a3727f274c91fc59",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\food-kit\\Models\\GLB format\\meat-cooked.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/food-kit",
+    "generator": null,
+    "notes": null
+  }
+}

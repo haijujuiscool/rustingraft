@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "95fce1b3-891b-4d68-9e0a-0f0da90a69db",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "0749d0beb2a5cd33",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\flare_gun.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/44H9OBUqTC",
+    "generator": null,
+    "notes": null
+  }
+}

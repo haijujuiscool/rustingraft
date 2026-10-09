@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "39b592fb-34a6-46f2-bd3a-8a472d8f9e18",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "7a03888db86a0493",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\survival-kit\\Models\\GLB format\\tool-hammer.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/survival-kit",
+    "generator": null,
+    "notes": null
+  }
+}

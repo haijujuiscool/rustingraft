@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "aeb0206c-4d28-4205-a445-b1812d33b886",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "c779f7f6d8f2fba4",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\survival-kit\\Models\\GLB format\\structure-metal-roof.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/survival-kit",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "820e777b-563e-4779-a012-74aa0c6e493a",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "4ebcf6fffbc7adb9",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\pirate-kit\\Models\\GLB format\\rocks-sand-b.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/pirate-kit",
+    "generator": null,
+    "notes": null
+  }
+}

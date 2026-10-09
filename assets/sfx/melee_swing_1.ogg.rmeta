@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "08fd29e4-3eb0-4b41-a6de-ea1d57172131",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "e6741bbd38cadd5c",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\melee_swing_1.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "generator": null,
+    "notes": null
+  }
+}

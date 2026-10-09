@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "6800641f-de96-44d5-9496-edd3e03a2eeb",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "4dffc21151b99fa7",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\watercraft-kit\\Models\\GLB format\\cargo-pile-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/watercraft-kit",
+    "generator": null,
+    "notes": null
+  }
+}

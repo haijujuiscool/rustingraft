@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "fe6ce9f8-1316-4a0d-981d-efeca962ad52",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "ac300359bed47c2c",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\factory-kit\\Models\\GLB format\\lever-single.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/factory-kit",
+    "generator": null,
+    "notes": null
+  }
+}

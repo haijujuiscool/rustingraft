@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "3634ab9e-ec5f-4e93-a126-9c296b66e0df",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "730e9e688f647c1a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\sharky.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/iPV5YmAoIv",
+    "generator": null,
+    "notes": null
+  }
+}

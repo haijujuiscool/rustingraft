@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "b18ddea1-22f8-42e8-9f91-91fa4cd81bb1",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "0b680905ddabf176",
+  "source": {
+    "original": ".downloads/stage/gen/wind_loop.wav",
+    "author": "Rusting Raft (generated)",
+    "license": "CC0-1.0",
+    "url": null,
+    "generator": "tools/assets/gen_ambience.py",
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "67632446-2660-4384-b63d-9e97fdca039e",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "8816381196c3bb0a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\pirate-kit\\Models\\GLB format\\rocks-b.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/pirate-kit",
+    "generator": null,
+    "notes": null
+  }
+}

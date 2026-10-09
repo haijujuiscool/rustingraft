@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "ca1184e8-de12-4f4d-b954-bbf97da61cc5",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "8d51c6af35b48557",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\chest_open.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/100-cc0-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

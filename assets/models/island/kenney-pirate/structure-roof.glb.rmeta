@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "d7226aaa-7509-4eb7-a374-05d6b1ea5fe4",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "9893f40853f5eb95",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\pirate-kit\\Models\\GLB format\\structure-roof.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/pirate-kit",
+    "generator": null,
+    "notes": null
+  }
+}

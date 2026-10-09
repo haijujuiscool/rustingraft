@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "69d30983-d4e4-4c83-9559-17157d85c061",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "6ef5adbc25e143f8",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\logbook_close.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "generator": null,
+    "notes": null
+  }
+}

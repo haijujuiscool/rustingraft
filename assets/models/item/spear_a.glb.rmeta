@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "de49a76b-064c-4662-8cfd-7591e670df9f",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "8c3e4c69a1985bf3",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\spear_a.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/3zA9NtYBEi",
+    "generator": null,
+    "notes": null
+  }
+}

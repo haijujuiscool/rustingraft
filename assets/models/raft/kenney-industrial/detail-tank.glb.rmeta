@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "9a7e968b-cb09-444a-99e0-1b254beaf8a1",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "045e3f2c64f92f73",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\city-kit-industrial\\Models\\GLB format\\detail-tank.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/city-kit-industrial",
+    "generator": null,
+    "notes": null
+  }
+}

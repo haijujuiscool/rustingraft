@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "764fa626-2171-41fa-9486-61cb11b0603b",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "c59f7651768f4bc4",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\harpoon_throw_2.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "generator": null,
+    "notes": null
+  }
+}

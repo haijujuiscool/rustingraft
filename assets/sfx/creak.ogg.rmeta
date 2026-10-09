@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "0e63af85-f18e-4456-b9e1-db466d727e50",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "2e82f0d25c256a48",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\creak.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/rpg-audio",
+    "generator": null,
+    "notes": null
+  }
+}

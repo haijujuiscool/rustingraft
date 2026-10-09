@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "1b6ad3ea-02a5-4ef6-8e05-a69aab0321a9",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "bd9a1bd5589b2de9",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\whale.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/JGFwp6xWgk",
+    "generator": null,
+    "notes": null
+  }
+}

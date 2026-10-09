@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "b9fba7f2-1a3e-4153-b7be-5dd25b2524c1",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "0ea688cdd46d7944",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\factory-kit\\Models\\GLB format\\pipe-large-valve.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/factory-kit",
+    "generator": null,
+    "notes": null
+  }
+}

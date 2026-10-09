@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "28d4112a-1b40-40c2-9bf1-e2b476d8a503",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "daf03da58cc8af5a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\food-kit\\Models\\GLB format\\can.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/food-kit",
+    "generator": null,
+    "notes": null
+  }
+}

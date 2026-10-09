@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "8fcffc4d-44d0-4f9a-82be-fd32b0fbdb84",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "ebfe58c790e77059",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\bucket_of_fish.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/G61jVPof0G",
+    "generator": null,
+    "notes": null
+  }
+}

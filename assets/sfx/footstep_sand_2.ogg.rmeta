@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "a53eba95-8252-44fe-a63e-6cd6ed0d737d",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "6ef4044638b7d404",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\footstep_sand_2.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

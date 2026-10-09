@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "a28f8690-1912-4d73-92e8-049a52b76065",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "d93a5a5be08ed0f1",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\survival-kit\\Models\\GLB format\\floor-hole.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/survival-kit",
+    "generator": null,
+    "notes": null
+  }
+}

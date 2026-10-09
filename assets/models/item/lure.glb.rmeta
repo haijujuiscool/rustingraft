@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "1d9a4f53-5a95-44e6-a8cc-24b10c5c10b0",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "7c308ed20c6365d7",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\lure.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/2dkfIrm95d",
+    "generator": null,
+    "notes": null
+  }
+}

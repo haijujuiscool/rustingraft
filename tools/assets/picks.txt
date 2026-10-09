@@ -1,0 +1,170 @@
+# Import manifest for tools/assets/import_all.py. All picks are CC0-1.0.
+# Section header:  @ <dest under assets/> | <author> | <url> | <source dir under .downloads/> | <ext> [| notes]
+# Then whitespace-separated names. "src=dst" renames; "src=dst.ogg" transcodes with ffmpeg.
+# Source dir "pp": author/url come from polypizza_picks.txt (url https://poly.pizza/m/<publicID>).
+# Kenney kits each ship their own Textures/colormap.png, so each kit gets its own subfolder.
+
+# ---------------- raft ----------------
+@ models/raft/kenney-survival | Kenney | https://kenney.nl/assets/survival-kit | x/survival-kit/Models/GLB format | .glb
+floor floor-old floor-hole fence fence-fortified fence-doorway
+campfire-pit campfire-stand campfire-fishing-stand workbench workbench-anvil workbench-grind
+structure structure-floor structure-roof structure-canvas structure-metal structure-metal-floor
+structure-metal-wall structure-metal-roof structure-metal-doorway metal-panel metal-panel-screws
+bedroll tent signpost bucket box-large box-large-open
+
+@ models/raft/kenney-pirate | Kenney | https://kenney.nl/assets/pirate-kit | x/pirate-kit/Models/GLB format | .glb
+platform platform-planks structure-platform structure-platform-small structure-fence structure-fence-sides
+mast mast-ropes flag-pirate flag
+
+@ models/raft/kenney-factory | Kenney | https://kenney.nl/assets/factory-kit | x/factory-kit/Models/GLB format | .glb
+machine machine-fortified machine-bed hopper-square hopper-round conveyor cog-a cog-b
+lever-single screen-small pipe-large pipe-large-valve piston-round
+
+@ models/raft/kenney-industrial | Kenney | https://kenney.nl/assets/city-kit-industrial | x/city-kit-industrial/Models/GLB format | .glb
+detail-tank solar-panel-flat windmill-low
+
+@ models/raft/kenney-nature | Kenney | https://kenney.nl/assets/nature-kit | x/nature-kit/Models/GLTF format | .glb
+pot_large pot_small crops_dirtSingle crops_bambooStageA crops_bambooStageB crops_leafsStageA crops_leafsStageB
+log_stack
+
+@ models/raft | * | * | pp | .glb
+radio_q radio_k antenna_a antenna_b book book_open
+
+# ---------------- debris ----------------
+@ models/debris/kenney-survival | Kenney | https://kenney.nl/assets/survival-kit | x/survival-kit/Models/GLB format | .glb
+resource-planks resource-wood tree-log-small barrel barrel-open box box-open chest metal-panel-narrow metal-panel-screws-half
+
+@ models/debris/kenney-pirate | Kenney | https://kenney.nl/assets/pirate-kit | x/pirate-kit/Models/GLB format | .glb
+barrel crate crate-bottles chest
+
+@ models/debris/kenney-watercraft | Kenney | https://kenney.nl/assets/watercraft-kit | x/watercraft-kit/Models/GLB format | .glb
+buoy buoy-flag cargo-container-a cargo-pile-a
+
+@ models/debris/kenney-nature | Kenney | https://kenney.nl/assets/nature-kit | x/nature-kit/Models/GLTF format | .glb
+grass_leafs grass_leafsLarge log log_large
+
+@ models/debris/kenney-factory | Kenney | https://kenney.nl/assets/factory-kit | x/factory-kit/Models/GLB format | .glb
+cog-e box-small
+
+@ models/debris/kenney-food | Kenney | https://kenney.nl/assets/food-kit | x/food-kit/Models/GLB format | .glb
+fish-bones meat-ribs
+
+@ models/debris | * | * | pp | .glb
+debris_pile chest_closed chest_open chest_ocean
+
+# ---------------- islands ----------------
+@ models/island/kenney-pirate | Kenney | https://kenney.nl/assets/pirate-kit | x/pirate-kit/Models/GLB format | .glb
+palm-straight palm-bend palm-detailed-straight palm-detailed-bend rocks-a rocks-b rocks-c rocks-sand-a rocks-sand-b rocks-sand-c
+patch-sand patch-sand-foliage patch-grass patch-grass-foliage grass grass-plant
+structure-platform-dock structure-platform-dock-small ship-wreck tower-complete-large tower-complete-small tower-watch
+structure structure-roof hole
+
+@ models/island/kenney-nature | Kenney | https://kenney.nl/assets/nature-kit | x/nature-kit/Models/GLTF format | .glb
+tree_palm tree_palmBend tree_palmTall tree_palmDetailedTall tree_palmShort tree_palmDetailedShort
+cliff_block_rock cliff_large_rock cliff_corner_rock cliff_half_rock cliff_top_rock cliff_steps_rock cliff_waterfall_rock
+rock_largeA rock_largeB rock_largeC rock_tallA rock_tallB rock_smallA rock_smallB stone_largeA stone_tallA
+platform_beach platform_grass platform_stone
+statue_obelisk statue_column statue_columnDamaged statue_head statue_ring statue_block
+plant_bush plant_bushLarge plant_bushDetailed campfire_stones bridge_wood fence_planks sign
+
+@ models/island/kenney-factory | Kenney | https://kenney.nl/assets/factory-kit | x/factory-kit/Models/GLB format | .glb
+catwalk-straight catwalk-corner catwalk-stairs crane crane-lift pipe-large-bend pipe-large-long
+structure-tall structure-high structure-medium floor-large top-large warning-orange
+
+@ models/island/kenney-industrial | Kenney | https://kenney.nl/assets/city-kit-industrial | x/city-kit-industrial/Models/GLB format | .glb
+detail-tank-large chimney-large chimney-medium water-tower shipping-container-a
+
+@ models/island/kenney-castle | Kenney | https://kenney.nl/assets/castle-kit | x/castle-kit/Models/GLB format | .glb
+tower-hexagon-base tower-hexagon-mid tower-hexagon-top tower-hexagon-roof rocks-large rocks-small stairs-stone
+
+@ models/island/kenney-watercraft | Kenney | https://kenney.nl/assets/watercraft-kit | x/watercraft-kit/Models/GLB format | .glb
+ship-cargo-a
+
+@ models/island | * | * | pp | .glb
+lighthouse shrine_a shrine_b dock dock_long dock_broken
+
+# ---------------- characters ----------------
+@ models/character/kenney-mini | Kenney | https://kenney.nl/assets/mini-characters | x/mini-characters/Models/GLB format | .glb
+character-male-a character-male-b character-male-c character-male-d character-male-e character-male-f
+character-female-a character-female-b character-female-c character-female-d character-female-e character-female-f
+
+@ models/character | * | * | pp | .glb
+beach_character adventurer casual farmer worker pirate_captain
+
+# ---------------- creatures ----------------
+@ models/creature | * | * | pp | .glb
+fish_sardine fish_mackerel fish_tang fish_butterfly fish_manta fish_koi fish_tuna fish_generic_c
+anglerfish goblin_shark shark_a shark_b shark_c sharky fish_generic_b crab giant mech
+tentacle_a whale squidle glub snake
+
+# ---------------- boats ----------------
+@ models/boat/kenney-watercraft | Kenney | https://kenney.nl/assets/watercraft-kit | x/watercraft-kit/Models/GLB format | .glb
+boat-row-small boat-row-large boat-fishing-small boat-speed-a boat-speed-e boat-house-a boat-tug-a boat-sail-a ship-small
+
+@ models/boat/kenney-nature | Kenney | https://kenney.nl/assets/nature-kit | x/nature-kit/Models/GLTF format | .glb
+canoe canoe_paddle
+
+@ models/boat | * | * | pp | .glb
+lifeboat boat_q
+
+# ---------------- items ----------------
+@ models/item | * | * | pp | .glb
+spear_a spear_b sword_a sword_b sword_c sword_d cutlass machete_ct machete_pr dagger
+fishing_rod_a fishing_rod_b fishing_rod_c fishing_rod_d fishing_rod_e
+potion_a potion_b first_aid_a first_aid_b flare_gun lure bucket_of_fish
+
+@ models/item/kenney-pirate | Kenney | https://kenney.nl/assets/pirate-kit | x/pirate-kit/Models/GLB format | .glb
+tool-paddle tool-shovel bottle cannon-ball
+
+@ models/item/kenney-survival | Kenney | https://kenney.nl/assets/survival-kit | x/survival-kit/Models/GLB format | .glb
+tool-axe tool-hammer tool-hammer-upgraded tool-pickaxe fish fish-large bottle
+
+@ models/item/kenney-food | Kenney | https://kenney.nl/assets/food-kit | x/food-kit/Models/GLB format | .glb
+fish meat-cooked meat-raw coconut coconut-half banana pineapple can can-open bag bottle-oil
+mussel mussel-open bowl-soup pot-stew frying-pan skewer
+
+# ---------------- sounds ----------------
+@ sfx | Kenney | https://kenney.nl/assets/impact-sounds | x/impact-sounds/Audio | .ogg
+impactPunch_heavy_000=harpoon_hit_1 impactPunch_heavy_001=harpoon_hit_2 impactWood_medium_000=harpoon_hit_wood
+impactPunch_medium_000=melee_hit_1 impactPunch_medium_001=melee_hit_2 impactPunch_medium_002=melee_hit_3
+impactSoft_heavy_000=player_hurt_1 impactSoft_heavy_001=player_hurt_2
+impactPlank_medium_000=build_place_1 impactPlank_medium_001=build_place_2 impactMetal_light_000=build_metal
+impactWood_light_000=debris_bump impactGeneric_light_000=item_drop
+footstep_wood_000=footstep_wood_1 footstep_wood_001=footstep_wood_2 footstep_wood_002=footstep_wood_3
+footstep_snow_000=footstep_sand_1 footstep_snow_001=footstep_sand_2 footstep_snow_002=footstep_sand_3
+
+@ sfx | Kenney | https://kenney.nl/assets/rpg-audio | x/rpg-audio/Audio | .ogg
+knifeSlice=melee_swing_1 knifeSlice2=melee_swing_2 drawKnife1=harpoon_throw_1 drawKnife2=harpoon_throw_2
+handleCoins=coin_1 handleCoins2=coin_2 chop=craft_1 metalLatch=craft_2 cloth1=equip
+bookOpen=logbook_open bookFlip1=logbook_flip bookClose=logbook_close creak1=creak
+
+@ sfx | Kenney | https://kenney.nl/assets/interface-sounds | x/interface-sounds/Audio | .ogg
+click_001=ui_click confirmation_001=ui_confirm back_001=ui_back error_001=ui_error open_001=ui_open
+close_001=ui_close select_001=ui_select pluck_001=pickup_1 pluck_002=pickup_2 maximize_001=quest_complete
+
+@ sfx | Kenney | https://kenney.nl/assets/sci-fi-sounds | x/sci-fi-sounds/Audio | .ogg
+spaceEngineLow_000=boat_engine_loop computerNoise_000=radio_static lowFrequency_explosion_000=leviathan_rumble
+
+@ sfx | rubberduck | https://opengameart.org/content/100-cc0-sfx | x/oga-100-CC0-SFX_0 | .ogg
+machine_01=shredder_1 machine_02=shredder_2 machine_03=shredder_3 gong_01=night_sting
+wooded_box_open=chest_open plop_01=bait_plop bell_01=bell tools_01=craft_3
+
+@ sfx | rubberduck | https://opengameart.org/content/40-cc0-water-splash-slime-sfx | x/oga-water-splash-slime-sfx | .ogg
+splash_01=splash_1 splash_02=splash_2 splash_03=splash_3 splash_04=splash_4 bubble_01=fishing_bite_2
+loop_bubbles_1=underwater_loop loop_water_01=water_lap_loop
+
+@ sfx | starninjas | https://opengameart.org/content/16-monster-growls | x/oga-monster_-_starninjas | .ogg
+monster.1=enemy_hurt_1 monster.2=enemy_hurt_2 monster.3=enemy_hurt_3 monster.4=enemy_hurt_4
+monster.6=enemy_growl_1 monster.7=enemy_growl_2 monster.8=enemy_death_1 monster.11=enemy_death_2
+
+@ sfx | youre-perfect-studio | https://opengameart.org/content/fisheefects | x/oga-FisheefectsComplete | .wav | Listed as CC-BY 4.0 / CC0 / OGA-BY 3.0; used under CC0.
+reel=fishing_reel.ogg bloop=fishing_bite splash=splash_big point_special=fishing_catch
+
+@ sfx | pagdev | https://opengameart.org/content/fireplace-sound-loop | oga | .wav
+fire=fire_loop.ogg
+
+@ sfx | antumdeluge | https://opengameart.org/content/fire-crackling | oga | .ogg
+fire-1_0=fire_crackle
+
+@ sfx | qubodup (recording by jasinski) | https://opengameart.org/content/beach-ocean-waves | oga | .flac
+wave_01_cc0-18363__jasinski__alkaibeach=beach_waves.ogg

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "663de533-26c7-479f-901c-33c3574ea31a",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "f624fbb82bc2422e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\factory-kit\\Models\\GLB format\\crane.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/factory-kit",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "2a93f423-a019-46ee-b008-e501f62acc29",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "098e630e0b78b4ab",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\craft_3.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/100-cc0-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

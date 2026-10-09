@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "289c91c8-23f9-4c29-a05a-ea98b8dc6573",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "1a716c6b99feae11",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\melee_hit_3.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

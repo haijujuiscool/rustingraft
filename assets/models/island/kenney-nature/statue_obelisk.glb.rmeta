@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "283a5f10-9dba-435e-9a7d-e8df7e949308",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "7f6cc124ef16ca14",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\nature-kit\\Models\\GLTF format\\statue_obelisk.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/nature-kit",
+    "generator": null,
+    "notes": null
+  }
+}

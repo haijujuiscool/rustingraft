@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "b818df36-df91-4b3b-83ca-5e8cae40801e",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "5c12d642ee1cb524",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\night_sting.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/100-cc0-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

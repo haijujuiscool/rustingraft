@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "0bcbac53-f635-4fb0-b972-13774aca9a5a",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "396a03f48a30b97a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\factory-kit\\Models\\GLB format\\machine-fortified.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/factory-kit",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -2,3 +2,6 @@
 /build
 /tests/shots
 /.downloads
+*.rmesh
+*.rskin
+*.rtexture

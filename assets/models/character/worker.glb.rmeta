@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "4aafc97d-a43e-4872-9098-7f863e6db309",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "115e8d248b49b3b2",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\worker.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/Yg2bQZO6Hj",
+    "generator": null,
+    "notes": null
+  }
+}

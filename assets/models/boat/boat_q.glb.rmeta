@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "053d1006-c897-4e9d-8968-10b953305e36",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "5e8d65167c195857",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\boat_q.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/5UEl54KsuC",
+    "generator": null,
+    "notes": null
+  }
+}

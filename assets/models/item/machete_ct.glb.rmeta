@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "3dcde797-e632-4a7d-9141-d6d5af938d85",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "31891f858f517747",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\machete_ct.glb",
+    "author": "CreativeTrio",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/SMBU5kBYtZ",
+    "generator": null,
+    "notes": null
+  }
+}

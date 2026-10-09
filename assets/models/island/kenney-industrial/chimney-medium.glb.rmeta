@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "16029e6b-fccf-463b-974b-9c060278c537",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "02a80aa63838c2d4",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\city-kit-industrial\\Models\\GLB format\\chimney-medium.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/city-kit-industrial",
+    "generator": null,
+    "notes": null
+  }
+}

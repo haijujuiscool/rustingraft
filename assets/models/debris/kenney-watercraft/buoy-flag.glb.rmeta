@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "ea1952ae-80c7-4387-b2a6-5c5867c6d18e",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "a30e04b7d30076a7",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\watercraft-kit\\Models\\GLB format\\buoy-flag.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/watercraft-kit",
+    "generator": null,
+    "notes": null
+  }
+}

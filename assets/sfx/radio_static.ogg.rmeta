@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "98c63e26-c199-4b3e-9b8b-b9ad839dcf28",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "9e6d44d7e954126e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\radio_static.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

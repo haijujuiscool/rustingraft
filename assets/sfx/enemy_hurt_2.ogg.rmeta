@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "c1d8d095-2c9f-4498-8270-574f1d97c6bf",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "48c6e7f656cedb3c",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\enemy_hurt_2.ogg",
+    "author": "starninjas",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/16-monster-growls",
+    "generator": null,
+    "notes": null
+  }
+}

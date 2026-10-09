@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "31fb32cf-73f3-4c49-a319-d5b8a23c8549",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "d86e68fca5a8dd45",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\castle-kit\\Models\\GLB format\\stairs-stone.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/castle-kit",
+    "generator": null,
+    "notes": null
+  }
+}

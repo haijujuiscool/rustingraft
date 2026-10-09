@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "47d2aabe-ed2d-4c7e-8b5a-7f49dea755f9",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "e7cb8e1ee5062f7b",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\fishing_reel.ogg",
+    "author": "youre-perfect-studio",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/fisheefects",
+    "generator": null,
+    "notes": "Listed as CC-BY 4.0 / CC0 / OGA-BY 3.0; used under CC0."
+  }
+}

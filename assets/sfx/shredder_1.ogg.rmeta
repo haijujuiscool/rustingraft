@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "ac891b7a-888f-4b75-9c65-a73f6a06030f",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "6937cfe8f6d09f5f",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\shredder_1.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/100-cc0-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

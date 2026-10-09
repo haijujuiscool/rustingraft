@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "5dd96c5d-afa7-4649-9700-fa223e33a1be",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "c3fde6050150188f",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\castle-kit\\Models\\GLB format\\rocks-small.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/castle-kit",
+    "generator": null,
+    "notes": null
+  }
+}

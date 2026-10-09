@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "d473422a-8a16-44b0-8eb9-ef429214dc63",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "f0c1452a06ed5932",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\pickup_2.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

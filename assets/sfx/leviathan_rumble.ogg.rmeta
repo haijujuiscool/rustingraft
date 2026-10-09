@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "40814046-6270-4c9e-b622-9f7803087ef1",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "ca27ae880893f740",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\leviathan_rumble.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

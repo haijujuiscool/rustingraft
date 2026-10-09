@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "273591f0-9fac-4e00-bc3f-ea72faa5fc4d",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "303b860be19600d9",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\machete_pr.glb",
+    "author": "Pichuliru",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/HF3HezwXzT",
+    "generator": null,
+    "notes": null
+  }
+}

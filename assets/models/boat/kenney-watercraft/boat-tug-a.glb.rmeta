@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "9a5b9022-9943-4c6a-a893-c5b0654a6135",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "ed7bc85da6ace5b3",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\watercraft-kit\\Models\\GLB format\\boat-tug-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/watercraft-kit",
+    "generator": null,
+    "notes": null
+  }
+}

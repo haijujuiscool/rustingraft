@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "ee2b0248-66ac-4d0e-9215-94601831521e",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "2a0c9324e76d98f6",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\fire_crackle.ogg",
+    "author": "antumdeluge",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/fire-crackling",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "35a85684-62f4-4ba2-8445-63a52641ee00",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "aba3ceaa10c6a1cb",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\mini-characters\\Models\\GLB format\\character-female-e.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/mini-characters",
+    "generator": null,
+    "notes": null
+  }
+}

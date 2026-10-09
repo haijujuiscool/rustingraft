@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "67edf0bc-b00a-4887-8f5a-13bb4d98ff85",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "9fb61f8b4ef32c55",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\sword_b.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/ajOJ2NLz5m",
+    "generator": null,
+    "notes": null
+  }
+}

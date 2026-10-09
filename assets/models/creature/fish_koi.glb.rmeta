@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "6b15382e-97c9-4a9a-b331-b8608aa142cb",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "b3d21d526da3d73a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\fish_koi.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/qyGtRmhgzl",
+    "generator": null,
+    "notes": null
+  }
+}

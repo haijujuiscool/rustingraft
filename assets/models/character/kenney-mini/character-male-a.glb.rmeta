@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "88aefaf6-5a19-4b3e-91cd-345f6ecf08d5",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "72d14df481502167",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\mini-characters\\Models\\GLB format\\character-male-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/mini-characters",
+    "generator": null,
+    "notes": null
+  }
+}

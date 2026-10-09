@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "4cf26cb9-6188-4d80-be55-ef1e3e2b6f3d",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "924e28df452c3727",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\enemy_death_1.ogg",
+    "author": "starninjas",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/16-monster-growls",
+    "generator": null,
+    "notes": null
+  }
+}

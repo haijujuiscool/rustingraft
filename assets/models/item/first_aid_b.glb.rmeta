@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "a95957f0-9396-4ff3-b539-224126d73037",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "29afd906ac84875c",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\first_aid_b.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/Hp80p6148W",
+    "generator": null,
+    "notes": null
+  }
+}

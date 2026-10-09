@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "6aed24eb-be62-40ed-86a2-0a02142fdf5e",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "d4bd9694bb910e1f",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\enemy_growl_1.ogg",
+    "author": "starninjas",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/16-monster-growls",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "4c86c481-f02b-4e81-ac1c-77e6754b9220",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "a22b752276a24f17",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\beach_waves.ogg",
+    "author": "qubodup (recording by jasinski)",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/beach-ocean-waves",
+    "generator": null,
+    "notes": null
+  }
+}

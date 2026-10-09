@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "2cf0b167-aa5f-4ab4-a882-47a5082f1eaf",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "0f099585ec22c410",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\potion_a.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/WJxYta4Z96",
+    "generator": null,
+    "notes": null
+  }
+}

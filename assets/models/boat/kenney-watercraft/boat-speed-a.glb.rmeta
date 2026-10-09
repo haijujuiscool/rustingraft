@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "5b2ed1f7-7165-4a29-89e1-bb95ce46385f",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "c1f149d5bde7d6cb",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\watercraft-kit\\Models\\GLB format\\boat-speed-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/watercraft-kit",
+    "generator": null,
+    "notes": null
+  }
+}

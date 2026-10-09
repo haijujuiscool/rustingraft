@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "c59e75e6-44c0-4df0-8d51-4d4233b6aa4f",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "dc13bc6c8c6cc41b",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\player_hurt_1.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

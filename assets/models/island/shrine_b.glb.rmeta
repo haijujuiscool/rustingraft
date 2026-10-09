@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "9dfbe904-0b45-46d6-b4ba-02666a54f760",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "153cc96d5375c1b7",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\shrine_b.glb",
+    "author": "Kay Lousberg",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/Qq8M5LSXQ2",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "a785ce8f-93a0-45b8-8e4f-a05ff6043ebc",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "8b17c0cdcc6afbc7",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\castle-kit\\Models\\GLB format\\tower-hexagon-base.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/castle-kit",
+    "generator": null,
+    "notes": null
+  }
+}

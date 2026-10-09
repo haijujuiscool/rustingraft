@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "5025c91e-b1fd-41ec-9be3-0d29cc2ce08d",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "840259b953f68143",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\glub.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/x59pqJscry",
+    "generator": null,
+    "notes": null
+  }
+}

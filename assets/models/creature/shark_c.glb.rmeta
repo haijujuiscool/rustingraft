@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "98768a01-d0fd-4ee9-bfaa-32a5eb91c782",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "5fc81ccc91fe4025",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\shark_c.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/sZR8AMLMz5",
+    "generator": null,
+    "notes": null
+  }
+}

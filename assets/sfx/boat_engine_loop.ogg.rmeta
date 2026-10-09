@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "d28f8fd6-bb51-4dfe-ba94-33bf1a13a88b",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "62ed7096420b94e3",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\boat_engine_loop.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/sci-fi-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

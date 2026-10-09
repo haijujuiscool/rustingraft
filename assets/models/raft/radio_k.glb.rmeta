@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "42d6b802-baba-4255-8ebc-43ee2781cb1d",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "f3c763c40ff5766b",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\radio_k.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/ShNRjTDU3i",
+    "generator": null,
+    "notes": null
+  }
+}

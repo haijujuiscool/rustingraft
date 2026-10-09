@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "2f5755c6-3185-462e-b589-e4bb728714fb",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "f8ac8028d496c00d",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\fishing_rod_a.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/0YAR0Lg58p",
+    "generator": null,
+    "notes": null
+  }
+}

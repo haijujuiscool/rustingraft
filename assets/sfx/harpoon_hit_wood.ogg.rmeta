@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "766830ff-5ea4-4180-926e-42d8f9389bd4",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "8b7eb939be15006d",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\harpoon_hit_wood.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

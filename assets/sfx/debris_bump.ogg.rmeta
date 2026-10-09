@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "7a304c68-556a-4898-a523-83fc4fa7d6bf",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "e86e64f8a4d29ccd",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\debris_bump.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

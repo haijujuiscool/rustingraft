@@ -1,0 +1,20 @@
+{
+  "format_version": 1,
+  "id": "f2d1a7e3-53f4-4c16-9bd0-02113913140c",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [
+    "Textures/colormap.png"
+  ],
+  "content_hash": "af4a208535c49642",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\x\\city-kit-industrial\\Models\\GLB format\\shipping-container-a.glb",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/city-kit-industrial",
+    "generator": null,
+    "notes": null
+  }
+}

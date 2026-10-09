@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "e8d51a2f-24a7-41d8-af24-f3dc1a05aed4",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "fcd8d2c139c69852",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\splash_1.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

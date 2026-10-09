@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "d0037d68-a055-44b7-b6a7-96b15ecc137f",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "76105df84d78980e",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\lifeboat.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/Bkd4KKQA4O",
+    "generator": null,
+    "notes": null
+  }
+}

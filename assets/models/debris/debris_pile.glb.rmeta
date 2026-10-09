@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "0295808b-b29f-4eb1-beaa-a55b3f0a3974",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "cab92cebe2d10000",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\debris_pile.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/WrIiMMxyEP",
+    "generator": null,
+    "notes": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "1094a48a-4de4-442b-a029-c4e63be9537f",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "e73ceb8897416cf4",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\fishing_bite.wav",
+    "author": "youre-perfect-studio",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/fisheefects",
+    "generator": null,
+    "notes": "Listed as CC-BY 4.0 / CC0 / OGA-BY 3.0; used under CC0."
+  }
+}

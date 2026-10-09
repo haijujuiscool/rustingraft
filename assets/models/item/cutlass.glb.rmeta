@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "7a46c238-1877-49d9-b67b-60dac0186f9b",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "eddec0f6f14aa177",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\cutlass.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/tzwQ8g5dBy",
+    "generator": null,
+    "notes": null
+  }
+}

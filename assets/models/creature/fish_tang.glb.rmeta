@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "f2784bda-e873-4d84-863c-6bc5747c9727",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "0809c50a1a90f20f",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\fish_tang.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/D36zsP5ESu",
+    "generator": null,
+    "notes": null
+  }
+}

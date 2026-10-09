@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "26a45a02-f04b-4b8a-882d-dc97fc94b592",
+  "kind": "gltf",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "53aa8c69e5a0c2ba",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\pp\\tentacle_a.glb",
+    "author": "Quaternius",
+    "license": "CC0-1.0",
+    "url": "https://poly.pizza/m/BR1vpIvvvv",
+    "generator": null,
+    "notes": null
+  }
+}

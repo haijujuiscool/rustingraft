@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "d5ddde16-4c20-49c2-8725-eb8a8532d97b",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "3fcdcf9a187f3207",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\ui_close.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/interface-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

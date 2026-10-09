@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "47b99429-5e91-4d20-bd05-56bd6cc2b50d",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "16adbb9dc69eee6a",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\fire_loop.ogg",
+    "author": "pagdev",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/fireplace-sound-loop",
+    "generator": null,
+    "notes": null
+  }
+}

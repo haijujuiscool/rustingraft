@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "9e98ac77-3386-4ee1-9f40-5368ee2aa2d3",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "cc29d486323ebb7d",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\fishing_bite_2.ogg",
+    "author": "rubberduck",
+    "license": "CC0-1.0",
+    "url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+    "generator": null,
+    "notes": null
+  }
+}

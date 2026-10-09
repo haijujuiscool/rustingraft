@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "9e507fe3-5b99-4ba1-b71c-6a17ee0643ff",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "e0000b3e8e4fc86d",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\footstep_wood_3.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}

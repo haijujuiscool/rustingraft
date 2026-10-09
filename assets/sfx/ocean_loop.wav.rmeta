@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "acf1facf-707a-44d8-811d-a94d4e42086b",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "1fc374430470dd5f",
+  "source": {
+    "original": ".downloads/stage/gen/ocean_loop.wav",
+    "author": "Rusting Raft (generated)",
+    "license": "CC0-1.0",
+    "url": null,
+    "generator": "tools/assets/gen_ambience.py",
+    "notes": null
+  }
+}

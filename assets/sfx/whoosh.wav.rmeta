@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "56da9d89-c274-409d-8f14-db447f115003",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "5bedf9f680745fb3",
+  "source": {
+    "original": ".downloads/stage/gen/whoosh.wav",
+    "author": "Rusting Raft (generated)",
+    "license": "CC0-1.0",
+    "url": null,
+    "generator": "tools/assets/gen_ambience.py",
+    "notes": null
+  }
+}

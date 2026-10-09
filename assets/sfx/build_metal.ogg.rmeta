@@ -1,0 +1,18 @@
+{
+  "format_version": 1,
+  "id": "56e9b37e-ce30-4f5b-859a-7bbee8c445ba",
+  "kind": "audio",
+  "settings": {
+    "max_size": null
+  },
+  "dependencies": [],
+  "content_hash": "40b9bb9145408da9",
+  "source": {
+    "original": "C:\\Users\\juliu\\RustingRaft\\.downloads\\stage\\build_metal.ogg",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "url": "https://kenney.nl/assets/impact-sounds",
+    "generator": null,
+    "notes": null
+  }
+}
