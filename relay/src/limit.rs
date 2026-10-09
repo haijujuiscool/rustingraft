@@ -9,9 +9,10 @@ pub const BURST_BYTES: usize = 512 * 1024;
 pub const JOIN_ATTEMPTS: u32 = 10;
 pub const JOIN_WINDOW: Duration = Duration::from_secs(60);
 pub const JOIN_BLOCK: Duration = Duration::from_secs(60);
-// ponytail: pruning is O(n) per attempt once more IPs than this are tracked; only reached
-// under a distributed flood, where the home line saturates first.
-const PRUNE_ABOVE: usize = 4096;
+/// IPs an [`AttemptLimiter`] tracks at most. Past that, under a flood from many addresses, new
+/// addresses are refused until old windows expire: memory and lock time stay bounded.
+pub const MAX_TRACKED: usize = 16_384;
+const PRUNE_EVERY: Duration = Duration::from_secs(1);
 
 /// Per-connection token bucket: [`RATE_BYTES_PER_SEC`] sustained, [`BURST_BYTES`] burst.
 pub struct TokenBucket {
@@ -37,29 +38,33 @@ impl TokenBucket {
     }
 }
 
-struct JoinWindow {
+struct Window {
     start: Instant,
     count: u32,
     blocked_until: Option<Instant>,
 }
 
-impl JoinWindow {
+impl Window {
     fn new(now: Instant) -> Self {
         Self { start: now, count: 0, blocked_until: None }
     }
+
+    fn is_live(&self, now: Instant) -> bool {
+        self.blocked_until.is_some_and(|until| now < until)
+            || now.duration_since(self.start) < JOIN_WINDOW
+    }
 }
 
-/// Open connections and join attempts per IP. IPv6 is keyed by /64, since one machine
-/// usually owns a whole /64.
+/// Open connections per IP. IPv6 is keyed by /48, the usual site allocation: a single machine
+/// often owns a whole /64 or more (a free tunnel broker hands out a /48).
 pub struct IpLimiter {
     max_conns_per_ip: usize,
     conns: HashMap<IpAddr, usize>,
-    joins: HashMap<IpAddr, JoinWindow>,
 }
 
 impl IpLimiter {
     pub fn new(max_conns_per_ip: usize) -> Self {
-        Self { max_conns_per_ip, conns: HashMap::new(), joins: HashMap::new() }
+        Self { max_conns_per_ip, conns: HashMap::new() }
     }
 
     /// Counts a new connection, or returns false if the IP is at its limit.
@@ -81,22 +86,38 @@ impl IpLimiter {
             }
         }
     }
+}
 
-    /// Counts a join attempt. More than [`JOIN_ATTEMPTS`] within [`JOIN_WINDOW`] blocks the
-    /// IP for [`JOIN_BLOCK`]; returns false while blocked.
-    pub fn join_attempt(&mut self, ip: IpAddr, now: Instant) -> bool {
-        if self.joins.len() > PRUNE_ABOVE {
-            self.joins.retain(|_, w| {
-                w.blocked_until.is_some_and(|until| now < until)
-                    || now.duration_since(w.start) < JOIN_WINDOW
-            });
+/// Attempts per IP (joins, or room opens). More than [`JOIN_ATTEMPTS`] within
+/// [`JOIN_WINDOW`] block the IP for [`JOIN_BLOCK`].
+pub struct AttemptLimiter {
+    windows: HashMap<IpAddr, Window>,
+    last_prune: Instant,
+}
+
+impl AttemptLimiter {
+    pub fn new(now: Instant) -> Self {
+        Self { windows: HashMap::new(), last_prune: now }
+    }
+
+    /// Counts an attempt; returns false while the IP is blocked, or when [`MAX_TRACKED`]
+    /// other IPs are live and this one is new.
+    pub fn attempt(&mut self, ip: IpAddr, now: Instant) -> bool {
+        let key = ip_key(ip);
+        if self.windows.len() >= MAX_TRACKED && !self.windows.contains_key(&key) {
+            if now.duration_since(self.last_prune) >= PRUNE_EVERY {
+                self.last_prune = now;
+                self.windows.retain(|_, w| w.is_live(now));
+            }
+            if self.windows.len() >= MAX_TRACKED {
+                return false;
+            }
         }
-        let w = self.joins.entry(ip_key(ip)).or_insert_with(|| JoinWindow::new(now));
-        match w.blocked_until {
-            Some(until) if now < until => return false,
-            Some(_) => *w = JoinWindow::new(now),
-            None if now.duration_since(w.start) >= JOIN_WINDOW => *w = JoinWindow::new(now),
-            None => {}
+        let w = self.windows.entry(key).or_insert_with(|| Window::new(now));
+        if !w.is_live(now) {
+            *w = Window::new(now);
+        } else if w.blocked_until.is_some() {
+            return false;
         }
         w.count += 1;
         if w.count > JOIN_ATTEMPTS {
@@ -113,7 +134,7 @@ fn ip_key(ip: IpAddr) -> IpAddr {
             Some(v4) => IpAddr::V4(v4),
             None => {
                 let s = v6.segments();
-                IpAddr::V6(Ipv6Addr::new(s[0], s[1], s[2], s[3], 0, 0, 0, 0))
+                IpAddr::V6(Ipv6Addr::new(s[0], s[1], s[2], 0, 0, 0, 0, 0))
             }
         },
         v4 => v4,
@@ -155,36 +176,50 @@ mod tests {
     }
 
     #[test]
-    fn ipv6_shares_a_slash_64() {
+    fn ipv6_shares_a_slash_48() {
         let mut l = IpLimiter::new(1);
         assert!(l.connect(ip("2001:db8:1:2::1")));
-        assert!(!l.connect(ip("2001:db8:1:2:ffff::9")));
-        assert!(l.connect(ip("2001:db8:1:3::1")));
+        assert!(!l.connect(ip("2001:db8:1:ffff:ffff::9")), "another /64 of the same /48");
+        assert!(l.connect(ip("2001:db8:2::1")));
     }
 
     #[test]
     fn join_attempts_block_for_a_minute() {
-        let mut l = IpLimiter::new(8);
-        let a = ip("198.51.100.7");
         let t0 = Instant::now();
+        let mut l = AttemptLimiter::new(t0);
+        let a = ip("198.51.100.7");
         for i in 0..JOIN_ATTEMPTS {
-            assert!(l.join_attempt(a, t0 + Duration::from_secs(i.into())), "attempt {i}");
+            assert!(l.attempt(a, t0 + Duration::from_secs(i.into())), "attempt {i}");
         }
         let t_block = t0 + Duration::from_secs(20);
-        assert!(!l.join_attempt(a, t_block));
-        assert!(l.join_attempt(ip("198.51.100.8"), t_block), "other IPs unaffected");
-        assert!(!l.join_attempt(a, t_block + Duration::from_secs(59)));
-        assert!(l.join_attempt(a, t_block + JOIN_BLOCK));
+        assert!(!l.attempt(a, t_block));
+        assert!(l.attempt(ip("198.51.100.8"), t_block), "other IPs unaffected");
+        assert!(!l.attempt(a, t_block + Duration::from_secs(59)));
+        assert!(l.attempt(a, t_block + JOIN_BLOCK));
     }
 
     #[test]
     fn join_window_resets() {
-        let mut l = IpLimiter::new(8);
-        let a = ip("198.51.100.7");
         let t0 = Instant::now();
+        let mut l = AttemptLimiter::new(t0);
+        let a = ip("198.51.100.7");
         for _ in 0..JOIN_ATTEMPTS {
-            assert!(l.join_attempt(a, t0));
+            assert!(l.attempt(a, t0));
         }
-        assert!(l.join_attempt(a, t0 + JOIN_WINDOW));
+        assert!(l.attempt(a, t0 + JOIN_WINDOW));
+    }
+
+    #[test]
+    fn tracked_ips_are_capped_under_a_flood() {
+        let t0 = Instant::now();
+        let mut l = AttemptLimiter::new(t0);
+        for i in 0..MAX_TRACKED as u32 {
+            assert!(l.attempt(IpAddr::from((0x0A00_0000 | i).to_be_bytes()), t0));
+        }
+        assert!(!l.attempt(ip("198.51.100.7"), t0), "a new IP is refused at the cap");
+        assert!(l.attempt(ip("10.0.0.1"), t0), "known IPs keep their own window");
+        let later = t0 + JOIN_WINDOW;
+        assert!(l.attempt(ip("198.51.100.7"), later), "expired windows are pruned");
+        assert_eq!(l.windows.len(), 1);
     }
 }

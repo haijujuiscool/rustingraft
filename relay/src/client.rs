@@ -1,22 +1,29 @@
 //! Game-side relay links. Each link owns a reader and a writer thread; the game polls
 //! `try_recv` and queues sends without blocking. The writer sends a keepalive after 5 s of
 //! silence; dropping a link flushes queued frames, then closes the connection.
+//!
+//! Both queues hold at most [`LINK_QUEUE`] frames. A full send queue closes the link (the
+//! relay or the network cannot keep up); a full receive queue stops reading the socket until
+//! the game polls, which pushes back on the relay instead of growing memory.
 
 use crate::code::is_valid_code;
-use crate::frame::{encode_frame, read_frame, write_frame, MAX_DATA};
+use crate::frame::{encode_frame, read_frame, write_frame, Deadline, MAX_DATA};
 use crate::proto::{
     parse_reply, Control, Handshake, Refusal, CONTROL, HANDSHAKE_TIMEOUT, IDLE_TIMEOUT,
     KEEPALIVE_INTERVAL, MAX_CLIENT_ID,
 };
 use std::io::{self, ErrorKind, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, SyncSender, TrySendError};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use std::{error, fmt};
 
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+/// Frames each link queues per direction; at most 64 KiB each.
+pub const LINK_QUEUE: usize = 256;
 const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// What a host link receives. `Closed` is the last message.
@@ -101,7 +108,8 @@ impl HostLink {
     }
 
     /// Queues `bytes` for client `target`, or every client for target 0. Fails if `bytes`
-    /// is over [`MAX_DATA`] or the link is closed. Empty payloads are never delivered.
+    /// is over [`MAX_DATA`] or the link is closed; a full queue closes the link. Empty
+    /// payloads are never delivered.
     pub fn send_to(&self, target: u8, bytes: &[u8]) -> io::Result<()> {
         self.0.send(&[target], bytes)
     }
@@ -115,17 +123,33 @@ impl ClientLink {
     }
 
     /// Queues `bytes` for the host. Fails if `bytes` is over [`MAX_DATA`] or the link is
-    /// closed. Empty payloads are keepalives and never delivered.
+    /// closed; a full queue closes the link. Empty payloads are keepalives and never
+    /// delivered.
     pub fn send(&self, bytes: &[u8]) -> io::Result<()> {
         self.0.send(&[], bytes)
     }
 }
 
-// ponytail: unbounded channels; the game drains every frame, and a stalled relay surfaces as
-// `Closed` once a write makes no progress for WRITE_TIMEOUT.
 struct Link<T> {
     incoming: Receiver<T>,
-    outgoing: Sender<Vec<u8>>,
+    outgoing: SyncSender<Vec<u8>>,
+    conn: Arc<Conn>,
+}
+
+/// The socket, shared by a link and its two threads.
+struct Conn {
+    stream: TcpStream,
+    closed: AtomicBool,
+}
+
+impl Conn {
+    /// Fails later writes and ends the reader: at once on Linux, where shutdown wakes a
+    /// blocked read; on Windows, which keeps delivering data after a shutdown, at the next
+    /// frame (the relay sends one at least every 5 s) or the idle timeout.
+    fn close(&self) {
+        self.closed.store(true, Ordering::Relaxed);
+        let _ = self.stream.shutdown(Shutdown::Both);
+    }
 }
 
 impl<T: Send + 'static> Link<T> {
@@ -136,14 +160,18 @@ impl<T: Send + 'static> Link<T> {
     ) -> io::Result<Self> {
         stream.set_read_timeout(Some(IDLE_TIMEOUT))?;
         stream.set_write_timeout(Some(WRITE_TIMEOUT))?;
-        let stream = Arc::new(stream);
-        let (in_tx, incoming) = mpsc::channel();
-        let (outgoing, out_rx) = mpsc::channel::<Vec<u8>>();
+        let conn = Arc::new(Conn { stream, closed: AtomicBool::new(false) });
+        let (in_tx, incoming) = mpsc::sync_channel(LINK_QUEUE);
+        let (outgoing, out_rx) = mpsc::sync_channel::<Vec<u8>>(LINK_QUEUE);
 
-        let reader = Arc::clone(&stream);
+        let reader = Arc::clone(&conn);
         let read_loop = move || {
             let error = loop {
-                match read_frame(&mut &*reader) {
+                let frame = read_frame(&mut &reader.stream);
+                if reader.closed.load(Ordering::Relaxed) {
+                    break io::Error::new(ErrorKind::ConnectionAborted, "relay link closed");
+                }
+                match frame {
                     Ok(frame) if frame.is_empty() => {} // keepalive
                     Ok(frame) => {
                         if let Some(msg) = decode(frame) {
@@ -157,7 +185,7 @@ impl<T: Send + 'static> Link<T> {
             };
             let _ = in_tx.send(closed(close_reason(&error)));
         };
-        let writer = Arc::clone(&stream);
+        let writer = Arc::clone(&conn);
         let write_loop = move || {
             loop {
                 let frame = match out_rx.recv_timeout(KEEPALIVE_INTERVAL) {
@@ -165,12 +193,12 @@ impl<T: Send + 'static> Link<T> {
                     Err(RecvTimeoutError::Timeout) => vec![0; 4],
                     Err(RecvTimeoutError::Disconnected) => break,
                 };
-                if (&*writer).write_all(&frame).is_err() {
+                if (&writer.stream).write_all(&frame).is_err() {
                     break;
                 }
             }
-            // Wakes the reader, which reports `Closed`.
-            let _ = writer.shutdown(Shutdown::Both);
+            // The reader then reports `Closed`.
+            writer.close();
         };
 
         let spawned = thread::Builder::new()
@@ -178,10 +206,10 @@ impl<T: Send + 'static> Link<T> {
             .spawn(read_loop)
             .and_then(|_| thread::Builder::new().name("relay-write".into()).spawn(write_loop));
         if let Err(e) = spawned {
-            let _ = stream.shutdown(Shutdown::Both);
+            conn.close();
             return Err(e);
         }
-        Ok(Self { incoming, outgoing })
+        Ok(Self { incoming, outgoing, conn })
     }
 
     fn send(&self, prefix: &[u8], bytes: &[u8]) -> io::Result<()> {
@@ -189,9 +217,17 @@ impl<T: Send + 'static> Link<T> {
             return Err(io::Error::new(ErrorKind::InvalidInput, "payload over MAX_DATA"));
         }
         let frame = encode_frame(prefix, bytes)?;
-        self.outgoing
-            .send(frame)
-            .map_err(|_| io::Error::new(ErrorKind::NotConnected, "relay link closed"))
+        match self.outgoing.try_send(frame) {
+            Ok(()) => Ok(()),
+            Err(TrySendError::Full(_)) => {
+                // The reader then reports `Closed`.
+                self.conn.close();
+                Err(io::Error::new(ErrorKind::WouldBlock, "relay link backed up, closed"))
+            }
+            Err(TrySendError::Disconnected(_)) => {
+                Err(io::Error::new(ErrorKind::NotConnected, "relay link closed"))
+            }
+        }
     }
 }
 
@@ -213,11 +249,11 @@ fn handshake<A: ToSocketAddrs>(
 ) -> Result<(TcpStream, String), RelayError> {
     let stream = connect(addr)?;
     stream.set_nodelay(true)?;
-    stream.set_read_timeout(Some(HANDSHAKE_TIMEOUT))?;
     stream.set_write_timeout(Some(HANDSHAKE_TIMEOUT))?;
     write_frame(&mut &stream, &hello.encode())?;
+    let mut reader = Deadline::new(&stream, HANDSHAKE_TIMEOUT);
     let reply = loop {
-        let frame = read_frame(&mut &stream)?;
+        let frame = read_frame(&mut reader)?;
         if !frame.is_empty() {
             break frame;
         }

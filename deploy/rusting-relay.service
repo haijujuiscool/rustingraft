@@ -34,9 +34,12 @@ RestrictAddressFamilies=AF_INET AF_INET6
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 
-# Resource ceilings: 512 connection threads fit under TasksMax, one fd per connection.
+# Resource ceilings. Each connection has a reader and, once in a room, a writer thread:
+# 1 + 2 x 512 = 1025 threads at the default --max-conns, so keep --max-conns under half of
+# TasksMax. Memory worst case: 512 x 256 KiB send queues + 512 x 64 KiB read buffers +
+# stacks, about 200 MiB. One fd per connection.
 MemoryMax=256M
-TasksMax=600
+TasksMax=1100
 LimitNOFILE=2048
 
 [Install]

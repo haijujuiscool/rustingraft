@@ -1,11 +1,12 @@
-//! The relay server: one thread per connection, every resource bounded.
+//! The relay server: a reader thread per connection and, once it is in a room, a writer
+//! thread; every resource bounded.
 //!
-//! Lock order is always peer write lock, then state lock. Nothing writes to a socket while
-//! holding the state lock.
+//! Lock order is state lock, then a peer's outbox lock. Nothing writes to a socket while
+//! holding a lock.
 
 use crate::code::{generate_code, is_valid_code};
-use crate::frame::{encode_frame, read_frame, MAX_DATA};
-use crate::limit::{IpLimiter, TokenBucket};
+use crate::frame::{encode_frame, read_frame, write_frame, Deadline};
+use crate::limit::{AttemptLimiter, IpLimiter, TokenBucket};
 use crate::proto::{
     err_reply, ok_reply, Control, Handshake, Refusal, BROADCAST, CONTROL, DEFAULT_PORT,
     HANDSHAKE_TIMEOUT, IDLE_TIMEOUT, KEEPALIVE_INTERVAL, MAX_CLIENT_ID,
@@ -13,13 +14,27 @@ use crate::proto::{
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, Write};
 use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
 /// A write that makes no progress for this long kills the connection.
 const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
+/// Bytes queued to one peer and not yet handed to the kernel. A peer this far behind is
+/// dropped, so a slow reader can neither stall its room nor grow memory: 512 connections x
+/// 256 KiB stays well inside the unit's `MemoryMax`.
+pub const MAX_QUEUED: usize = 256 * 1024;
 const THREAD_STACK: usize = 256 * 1024;
+
+/// Never panics, unlike `eprintln!` when stderr is gone: a panicking session would leak its
+/// room.
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        let _ = writeln!(io::stderr(), $($arg)*);
+    }};
+}
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -60,6 +75,8 @@ struct Shared {
 struct State {
     conns: usize,
     ips: IpLimiter,
+    joins: AttemptLimiter,
+    hosts: AttemptLimiter,
     rooms: HashMap<String, Room>,
     next_serial: u64,
 }
@@ -71,46 +88,92 @@ struct Room {
     clients: BTreeMap<u8, Arc<Peer>>,
 }
 
-/// One connection. The mutex serializes whole frames and remembers the last write, for
-/// keepalives.
+/// A whole encoded frame, shared by every recipient of a broadcast.
+type Frame = Arc<[u8]>;
+
+/// One connection past its handshake. Sending only queues; the peer's own writer thread
+/// puts frames on the wire, so no thread ever blocks on someone else's socket.
 struct Peer {
     stream: TcpStream,
-    last_sent: Mutex<Instant>,
+    outbox: Mutex<Option<Sender<Frame>>>,
+    queued: AtomicUsize,
 }
 
 impl Peer {
-    fn send(&self, prefix: &[u8], payload: &[u8]) {
-        let mut last_sent = lock(&self.last_sent);
-        self.send_locked(&mut last_sent, prefix, payload);
+    fn new(stream: TcpStream) -> (Arc<Self>, Receiver<Frame>) {
+        let (tx, rx) = mpsc::channel();
+        let peer = Self { stream, outbox: Mutex::new(Some(tx)), queued: AtomicUsize::new(0) };
+        (Arc::new(peer), rx)
     }
 
-    /// A failed or timed-out write may leave half a frame on the wire, so it closes the
-    /// connection; its own thread then sees the error and cleans up.
-    fn send_locked(&self, last_sent: &mut Instant, prefix: &[u8], payload: &[u8]) {
-        match encode_frame(prefix, payload).and_then(|frame| (&self.stream).write_all(&frame)) {
-            Ok(()) => *last_sent = Instant::now(),
-            Err(_) => self.close(),
+    /// Queues `frame`, or closes the peer if that would put it over [`MAX_QUEUED`]: a lost
+    /// frame would desync the game, so falling behind ends the connection.
+    fn send(&self, frame: Frame) {
+        let queued = self.queued.fetch_add(frame.len(), Ordering::Relaxed) + frame.len();
+        let sent = queued <= MAX_QUEUED
+            && lock(&self.outbox).as_ref().is_some_and(|tx| tx.send(frame).is_ok());
+        if !sent {
+            self.close();
         }
     }
 
-    fn keepalive_if_due(&self) {
-        let mut last_sent = lock(&self.last_sent);
-        if last_sent.elapsed() >= KEEPALIVE_INTERVAL {
-            self.send_locked(&mut last_sent, &[], &[]);
-        }
-    }
-
+    /// Stops the writer and ends this peer's session: at once on Linux, where shutdown wakes
+    /// the blocked read; on Windows, which keeps delivering data after a shutdown, when the
+    /// session sees [`Peer::is_closed`] at the peer's next frame or idle timeout.
     fn close(&self) {
+        lock(&self.outbox).take();
         let _ = self.stream.shutdown(Shutdown::Both);
+    }
+
+    fn is_closed(&self) -> bool {
+        lock(&self.outbox).is_none()
+    }
+}
+
+/// Writes queued frames, and a keepalive after [`KEEPALIVE_INTERVAL`] of silence, until the
+/// peer is closed or a write fails.
+fn write_loop(peer: &Peer, frames: Receiver<Frame>) {
+    loop {
+        let written = match frames.recv_timeout(KEEPALIVE_INTERVAL) {
+            Ok(frame) => {
+                let written = (&peer.stream).write_all(&frame);
+                peer.queued.fetch_sub(frame.len(), Ordering::Relaxed);
+                written
+            }
+            Err(RecvTimeoutError::Timeout) => (&peer.stream).write_all(&[0; 4]),
+            Err(RecvTimeoutError::Disconnected) => break,
+        };
+        if written.is_err() {
+            break;
+        }
+    }
+    peer.close();
+}
+
+/// Starts `peer`'s writer thread, which holds the connection's slot until it ends. If the
+/// thread cannot start, the peer is closed and its session ends through the usual teardown.
+fn start_writer(peer: &Arc<Peer>, frames: Receiver<Frame>, guard: Arc<ConnGuard>) {
+    let writer = Arc::clone(peer);
+    let spawned = thread::Builder::new().name("relay-write".into()).stack_size(THREAD_STACK).spawn(
+        move || {
+            let _guard = guard;
+            write_loop(&writer, frames);
+        },
+    );
+    if spawned.is_err() {
+        peer.close();
     }
 }
 
 impl Server {
     pub fn bind(config: Config) -> io::Result<Self> {
         let listener = TcpListener::bind(config.bind)?;
+        let now = Instant::now();
         let state = State {
             conns: 0,
             ips: IpLimiter::new(config.max_conns_per_ip),
+            joins: AttemptLimiter::new(now),
+            hosts: AttemptLimiter::new(now),
             rooms: HashMap::new(),
             next_serial: 0,
         };
@@ -128,34 +191,28 @@ impl Server {
         let mut last_report = Instant::now();
         loop {
             match self.listener.accept() {
-                Ok((stream, addr)) => {
-                    let ip = addr.ip();
-                    match admit(&self.shared, ip) {
-                        Some((guard, conns)) => {
-                            eprintln!("connect {ip} (conns {conns})");
-                            let shared = Arc::clone(&self.shared);
-                            let spawned = thread::Builder::new()
-                                .name("relay-conn".into())
-                                .stack_size(THREAD_STACK)
-                                .spawn(move || {
-                                    let _guard = guard;
-                                    handle(&shared, stream, ip);
-                                });
-                            if let Err(e) = spawned {
-                                eprintln!("cannot spawn a connection thread: {e}");
-                            }
+                // Not logged per connection: a connect flood would flood the journal.
+                Ok((stream, addr)) => match admit(&self.shared, addr.ip()) {
+                    Some(guard) => {
+                        let shared = Arc::clone(&self.shared);
+                        let spawned = thread::Builder::new()
+                            .name("relay-conn".into())
+                            .stack_size(THREAD_STACK)
+                            .spawn(move || handle(&shared, stream, addr.ip(), guard));
+                        if let Err(e) = spawned {
+                            log!("cannot spawn a connection thread: {e}");
                         }
-                        None => refused += 1,
                     }
-                }
+                    None => refused += 1,
+                },
                 Err(e) => {
                     // Usually out of file descriptors: back off instead of spinning.
-                    eprintln!("accept failed: {e}");
+                    log!("accept failed: {e}");
                     thread::sleep(Duration::from_millis(100));
                 }
             }
             if refused > 0 && last_report.elapsed() >= Duration::from_secs(10) {
-                eprintln!("refused {refused} connections over the connection limits");
+                log!("refused {refused} connections over the connection limits");
                 refused = 0;
                 last_report = Instant::now();
             }
@@ -163,7 +220,8 @@ impl Server {
     }
 }
 
-/// Releases a connection's slot when its thread ends, however it ends.
+/// Releases a connection's slot once its reader and writer threads have both ended, so
+/// there are never more than `2 * max_conns` connection threads.
 struct ConnGuard {
     shared: Arc<Shared>,
     ip: IpAddr,
@@ -177,72 +235,79 @@ impl Drop for ConnGuard {
     }
 }
 
-fn admit(shared: &Arc<Shared>, ip: IpAddr) -> Option<(ConnGuard, usize)> {
+fn admit(shared: &Arc<Shared>, ip: IpAddr) -> Option<ConnGuard> {
     let mut st = lock(&shared.state);
     if st.conns >= shared.config.max_conns || !st.ips.connect(ip) {
         return None;
     }
     st.conns += 1;
-    Some((ConnGuard { shared: Arc::clone(shared), ip }, st.conns))
+    Some(ConnGuard { shared: Arc::clone(shared), ip })
 }
 
-fn handle(shared: &Shared, stream: TcpStream, ip: IpAddr) {
-    let setup = stream
-        .set_nodelay(true)
-        .and_then(|()| stream.set_read_timeout(Some(shared.config.handshake_timeout)))
-        .and_then(|()| stream.set_write_timeout(Some(WRITE_TIMEOUT)));
+fn handle(shared: &Shared, stream: TcpStream, ip: IpAddr, guard: ConnGuard) {
+    let setup =
+        stream.set_nodelay(true).and_then(|()| stream.set_write_timeout(Some(WRITE_TIMEOUT)));
     if setup.is_err() {
         return;
     }
-    let peer = Arc::new(Peer { stream, last_sent: Mutex::new(Instant::now()) });
-    let Ok(hello) = read_frame(&mut &peer.stream) else { return };
+    let mut hello = Deadline::new(&stream, shared.config.handshake_timeout);
+    let Ok(hello) = read_frame(&mut hello) else { return };
+    let guard = Arc::new(guard);
     match Handshake::parse(&hello) {
-        Some(Handshake::Host) => host_session(shared, peer, ip),
-        Some(Handshake::Join(code)) => client_session(shared, peer, ip, &code),
-        None => peer.send(&[], &err_reply(Refusal::BadRequest)),
+        Some(Handshake::Host) => host_session(shared, stream, ip, guard),
+        Some(Handshake::Join(code)) => client_session(shared, stream, ip, &code, guard),
+        None => refuse(&stream, Refusal::BadRequest),
     }
 }
 
-fn host_session(shared: &Shared, peer: Arc<Peer>, ip: IpAddr) {
-    // Hold the host's write lock until `OK` is out, so no JOINED can overtake it.
-    let mut last_sent = lock(&peer.last_sent);
-    let mut st = lock(&shared.state);
-    if st.rooms.len() >= shared.config.max_rooms {
-        drop(st);
-        peer.send_locked(&mut last_sent, &[], &err_reply(Refusal::Full));
-        eprintln!("host {ip} refused: room limit reached");
-        return;
-    }
-    let code = loop {
-        let code = generate_code();
-        if !st.rooms.contains_key(&code) {
-            break code;
+/// Refusals go out before the peer has a writer thread, straight on the socket.
+fn refuse(stream: &TcpStream, refusal: Refusal) {
+    let _ = write_frame(&mut &*stream, &err_reply(refusal));
+}
+
+/// An encoded frame; `None` if it would be over the frame limit.
+fn frame(prefix: &[u8], payload: &[u8]) -> Option<Frame> {
+    encode_frame(prefix, payload).ok().map(Frame::from)
+}
+
+fn host_session(shared: &Shared, stream: TcpStream, ip: IpAddr, guard: Arc<ConnGuard>) {
+    let (peer, frames) = Peer::new(stream);
+    let opened = open_room(&mut lock(&shared.state), &shared.config, ip, &peer);
+    let (code, rooms) = match opened {
+        Ok(room) => room,
+        Err(refusal) => {
+            refuse(&peer.stream, refusal);
+            if refusal != Refusal::RateLimited {
+                log!("host {ip} refused: room limit reached");
+            }
+            return;
         }
     };
-    st.next_serial += 1;
-    let room = Room { serial: st.next_serial, host: Arc::clone(&peer), clients: BTreeMap::new() };
-    st.rooms.insert(code.clone(), room);
-    let rooms = st.rooms.len();
-    drop(st);
-    peer.send_locked(&mut last_sent, &[], &ok_reply(&code));
-    drop(last_sent);
-    eprintln!("room {code} opened by {ip} (rooms {rooms})");
+    start_writer(&peer, frames, guard);
+    log!("room {code} opened by {ip} (rooms {rooms})");
 
     if peer.stream.set_read_timeout(Some(shared.config.idle_timeout)).is_ok() {
         let mut bucket = TokenBucket::new(Instant::now());
-        while let Ok(frame) = read_frame(&mut &peer.stream) {
-            if !bucket.take(frame.len() + 4, Instant::now()) {
-                eprintln!("room {code}: host {ip} over the bandwidth limit, dropped");
+        while let Ok(data) = read_frame(&mut &peer.stream) {
+            if peer.is_closed() {
                 break;
             }
-            if let Some((&target, payload)) = frame.split_first() {
-                if !payload.is_empty() {
-                    for client in recipients(shared, &code, target) {
-                        client.send(&[], payload);
-                    }
-                }
+            if !bucket.take(data.len() + 4, Instant::now()) {
+                log!("room {code}: host {ip} over the bandwidth limit, dropped");
+                break;
             }
-            peer.keepalive_if_due();
+            let Some((&target, payload)) = data.split_first() else { continue };
+            if payload.is_empty() {
+                continue;
+            }
+            let clients = recipients(shared, &code, target);
+            if clients.is_empty() {
+                continue;
+            }
+            let Some(out) = frame(&[], payload) else { break };
+            for client in clients {
+                client.send(Arc::clone(&out));
+            }
         }
     }
 
@@ -255,7 +320,35 @@ fn host_session(shared: &Shared, peer: Arc<Peer>, ip: IpAddr) {
         client.close();
     }
     peer.close();
-    eprintln!("room {code} closed, {} clients dropped (rooms {rooms})", clients.len());
+    log!("room {code} closed, {} clients dropped (rooms {rooms})", clients.len());
+}
+
+/// Registers a room for `host` and queues its `OK <code>` before any client can find the
+/// room, so no `JOINED` can overtake it. Returns the code and the room count.
+fn open_room(
+    st: &mut State,
+    config: &Config,
+    ip: IpAddr,
+    host: &Arc<Peer>,
+) -> Result<(String, usize), Refusal> {
+    if !st.hosts.attempt(ip, Instant::now()) {
+        return Err(Refusal::RateLimited);
+    }
+    if st.rooms.len() >= config.max_rooms {
+        return Err(Refusal::Full);
+    }
+    let code = loop {
+        let code = generate_code();
+        if !st.rooms.contains_key(&code) {
+            break code;
+        }
+    };
+    let ok = frame(&[], &ok_reply(&code)).ok_or(Refusal::BadRequest)?;
+    st.next_serial += 1;
+    let room = Room { serial: st.next_serial, host: Arc::clone(host), clients: BTreeMap::new() };
+    st.rooms.insert(code.clone(), room);
+    host.send(ok);
+    Ok((code, st.rooms.len()))
 }
 
 fn recipients(shared: &Shared, code: &str, target: u8) -> Vec<Arc<Peer>> {
@@ -275,40 +368,48 @@ struct Seat {
     clients: usize,
 }
 
-fn client_session(shared: &Shared, peer: Arc<Peer>, ip: IpAddr, code: &str) {
-    // Hold this client's write lock until `OK` is out, so host data cannot overtake it.
-    let mut last_sent = lock(&peer.last_sent);
+fn client_session(
+    shared: &Shared,
+    stream: TcpStream,
+    ip: IpAddr,
+    code: &str,
+    guard: Arc<ConnGuard>,
+) {
+    let (peer, frames) = Peer::new(stream);
     let seat = take_seat(&mut lock(&shared.state), &shared.config, ip, code, &peer);
     let Seat { id, serial, host, clients } = match seat {
         Ok(seat) => seat,
         Err(refusal) => {
-            peer.send_locked(&mut last_sent, &[], &err_reply(refusal));
+            refuse(&peer.stream, refusal);
             // Rate-limited attempts are not logged: that is the flood.
             if refusal != Refusal::RateLimited {
-                eprintln!("join from {ip} refused: {refusal}");
+                log!("join from {ip} refused: {refusal}");
             }
             return;
         }
     };
-    peer.send_locked(&mut last_sent, &[], &ok_reply(&id.to_string()));
-    drop(last_sent);
-    host.send(&[CONTROL], &Control::Joined(id).encode());
-    eprintln!("room {code}: client {id} joined from {ip} (clients {clients})");
+    start_writer(&peer, frames, guard);
+    if let Some(joined) = frame(&[CONTROL], &Control::Joined(id).encode()) {
+        host.send(joined);
+    }
+    log!("room {code}: client {id} joined from {ip} (clients {clients})");
 
     if peer.stream.set_read_timeout(Some(shared.config.idle_timeout)).is_ok() {
         let mut bucket = TokenBucket::new(Instant::now());
-        while let Ok(frame) = read_frame(&mut &peer.stream) {
-            if !bucket.take(frame.len() + 4, Instant::now()) {
-                eprintln!("room {code}: client {id} over the bandwidth limit, dropped");
+        while let Ok(data) = read_frame(&mut &peer.stream) {
+            if peer.is_closed() {
                 break;
             }
-            if frame.len() > MAX_DATA {
-                break; // no room for the id prefix
+            if !bucket.take(data.len() + 4, Instant::now()) {
+                log!("room {code}: client {id} over the bandwidth limit, dropped");
+                break;
             }
-            if !frame.is_empty() {
-                host.send(&[id], &frame);
+            if data.is_empty() {
+                continue;
             }
-            peer.keepalive_if_due();
+            // Over the limit means no room for the id prefix.
+            let Some(out) = frame(&[id], &data) else { break };
+            host.send(out);
         }
     }
 
@@ -323,12 +424,15 @@ fn client_session(shared: &Shared, peer: Arc<Peer>, ip: IpAddr, code: &str) {
         }
     };
     if let Some(clients) = remaining {
-        host.send(&[CONTROL], &Control::Left(id).encode());
-        eprintln!("room {code}: client {id} left (clients {clients})");
+        if let Some(left) = frame(&[CONTROL], &Control::Left(id).encode()) {
+            host.send(left);
+        }
+        log!("room {code}: client {id} left (clients {clients})");
     }
     peer.close();
 }
 
+/// Seats `peer` in room `code` and queues its `OK <id>` before the host can address it.
 fn take_seat(
     st: &mut State,
     config: &Config,
@@ -336,7 +440,7 @@ fn take_seat(
     code: &str,
     peer: &Arc<Peer>,
 ) -> Result<Seat, Refusal> {
-    if !st.ips.join_attempt(ip, Instant::now()) {
+    if !st.joins.attempt(ip, Instant::now()) {
         return Err(Refusal::RateLimited);
     }
     if !is_valid_code(code) {
@@ -345,7 +449,9 @@ fn take_seat(
     let room = st.rooms.get_mut(code).ok_or(Refusal::NoRoom)?;
     let max = config.max_clients_per_room.min(MAX_CLIENT_ID);
     let id = (1..=max).find(|id| !room.clients.contains_key(id)).ok_or(Refusal::Full)?;
+    let ok = frame(&[], &ok_reply(&id.to_string())).ok_or(Refusal::BadRequest)?;
     room.clients.insert(id, Arc::clone(peer));
+    peer.send(ok);
     Ok(Seat { id, serial: room.serial, host: Arc::clone(&room.host), clients: room.clients.len() })
 }
 

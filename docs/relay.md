@@ -16,8 +16,8 @@ Install Rust with [rustup](https://rustup.rs) (stable is fine), then from the re
 cargo build --release -p raft_relay      # -> target/release/raft-relay
 ```
 
-If the workspace does not load on the server (the game's root `Cargo.toml` points at the
-engine by a Windows path), build the relay crate on its own. It has no dependencies, so
+If the workspace does not load on the server (the game's root `Cargo.toml` needs the engine
+checked out next to it at `../RustingEngine`), build the relay crate on its own. It has no dependencies, so
 copy it out of the workspace and build there:
 
 ```sh
@@ -41,7 +41,7 @@ systemd-analyze security rusting-relay    # sandbox score
 
 The unit runs the relay as a throwaway user (`DynamicUser=yes`) with no capabilities, a
 read-only filesystem, no home directories, private `/tmp` and `/dev`, only IPv4/IPv6
-sockets, the `@system-service` syscall filter, 256 MB of memory and 600 tasks at most. It
+sockets, the `@system-service` syscall filter, 256 MB of memory and 1100 tasks at most. It
 restarts on failure.
 
 ### Flags
@@ -52,7 +52,7 @@ restarts on failure.
 | `--max-rooms` | `64` | Open rooms at once. Extra hosts get `ERR full`. |
 | `--max-clients-per-room` | `7` | Clients per room besides the host (1..7). |
 | `--max-conns` | `512` | Open connections in total. |
-| `--max-conns-per-ip` | `8` | Open connections per IP (IPv6: per /64). |
+| `--max-conns-per-ip` | `8` | Open connections per IP (IPv6: per /48). |
 | `--handshake-timeout` | `5` | Seconds a new connection has to send its handshake. |
 | `--idle-timeout` | `30` | Seconds without any frame before a connection is dropped (min 10). |
 
@@ -68,7 +68,12 @@ ExecStart=
 ExecStart=/usr/local/bin/raft-relay --bind 0.0.0.0:27777 --max-rooms 8
 ```
 
-Keep `--max-conns` under the unit's `TasksMax=600` (one thread per connection).
+Keep `--max-conns` under half the unit's `TasksMax=1100`: each connection has a reader
+thread and, once in a room, a writer thread.
+
+The default `--bind 0.0.0.0:27777` is IPv4 only. Only listen on IPv6 if your players need
+it: one person with a free tunnel-broker /48 counts as one address for every limit, but
+anyone holding several /48s counts as several.
 
 ## Network setup
 
@@ -101,27 +106,38 @@ Test from outside your network (for example a phone hotspot): `nc -vz your.addre
 - Join errors: `no_room` (typo, or the host left), `full` (7 clients already),
   `rate_limited` (more than 10 join attempts in a minute from your address; wait 60 s),
   `bad_request` (malformed code or an incompatible game version).
+- Host errors: `full` (all rooms in use), `rate_limited` (more than 10 rooms opened in a
+  minute from your address; wait 60 s).
 
 ## What it logs
 
-To stderr (journald): connects with the connection count, rooms opened/closed with the room
-count, clients joining/leaving with the client count, refused joins, connections dropped for
-bandwidth, and every 10 s a count of connections refused over the limits. It never logs or
-parses game data.
+To stderr (journald): rooms opened/closed (with the room code, the host's IP and the room
+count), clients joining/leaving with the client count, refused joins and hosts, connections
+dropped for bandwidth, and every 10 s a count of connections refused over the limits.
+Single connections and rate-limited attempts are not logged, so a flood cannot flood the
+journal. It never logs or parses game data.
 
 ## What it defends against
 
-- **Room code guessing.** 31^6 (about 887 million) codes, and each IP (IPv6: each /64) gets
+- **Room code guessing.** 31^6 (about 887 million) codes, and each IP (IPv6: each /48) gets
   10 join attempts per minute, then 60 s of `ERR rate_limited`. Finding one of 64 open rooms
-  takes about 14 million guesses on average, roughly 1.4 million IP-minutes.
+  takes about 14 million guesses on average, roughly 1.4 million IP-minutes. The relay
+  tracks at most 16,384 addresses at once; while a flood from more addresses than that is
+  under way, joins and room opens from addresses it is not tracking yet are refused with
+  `ERR rate_limited`.
+- **Room churn.** Each IP can open 10 rooms per minute, then gets 60 s of
+  `ERR rate_limited`.
 - **Connection exhaustion.** At most 512 connections, 8 per IP. A connection that does not
-  finish its handshake within 5 s is dropped (slowloris), as is one silent for 30 s.
+  finish its handshake within 5 s in total is dropped, even if it trickles bytes
+  (slowloris), as is one silent for 30 s.
 - **Bandwidth abuse by a connection.** Each connection is limited to 256 KiB/s sustained
   with a 512 KiB burst; going over drops the connection.
 - **Malformed input.** Frames over 64 KiB, truncated frames, garbage handshakes and unknown
   targets are rejected or dropped. All reads are checked; bad input cannot panic it.
-- **Stalled receivers.** A peer that stops reading is dropped once a write to it makes no
-  progress for 5 s, so it cannot freeze its room.
+- **Stalled receivers.** Every connection has its own send queue and writer thread, so no
+  peer ever waits on another's socket. A peer that falls 256 KiB behind (or whose socket
+  takes no data for 5 s) is dropped; the rest of its room carries on. A host that falls
+  behind closes its room.
 - **Exposed IPs between players.** Players only ever talk to the relay, so they never see
   each other's IP addresses.
 - **Damage if the process were compromised.** The systemd sandbox above: no privileges, no
@@ -138,7 +154,14 @@ parses game data.
 - **SYN floods** are the kernel's job (SYN cookies, on by default), not the relay's.
 - **Many attacking IPs.** The limits bound memory and CPU, not availability: enough
   distinct addresses can still fill the 512-connection pool, and real players are then
-  refused until the attack stops.
+  refused until the attack stops. Opening a room needs no secret, so 8 addresses (8 rooms
+  each) can hold all 64 rooms; lower `--max-conns-per-ip` or raise `--max-rooms` if that
+  happens.
+- **Using the relay to fill your upload.** A host may send 256 KiB/s and every byte it
+  broadcasts goes to up to 7 clients: about 1.75 MiB/s (15 Mbit/s) of upload per room. Two
+  attacking addresses can open enough rooms to fill a typical home uplink. Size
+  `--max-rooms` and `--max-conns-per-ip` to your upload speed; normal games use a small
+  fraction of the cap.
 - **Eavesdropping and tampering.** Traffic is plain TCP with no encryption or
   authentication. The room code is the only secret, and anyone who has it can join. Do not
   send anything private through it.
@@ -152,7 +175,7 @@ is a keepalive; both sides send one after 5 s of silence.
 
 | Direction | Payload |
 | --- | --- |
-| first frame, host | `RRLY1 HOST` -> `OK <room code>` or `ERR full` |
+| first frame, host | `RRLY1 HOST` -> `OK <room code>` or `ERR <full / rate_limited>` |
 | first frame, client | `RRLY1 JOIN <code>` -> `OK <id 1..7>` or `ERR <full / no_room / rate_limited / bad_request>` |
 | client -> relay | data, forwarded to the host as `<id byte>` + data |
 | host -> relay | `<target byte>` + data; target 0 = all clients, 1..7 = one client |

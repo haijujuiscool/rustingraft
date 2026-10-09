@@ -124,7 +124,8 @@ mod tests {
     fn handshakes() {
         assert_eq!(Handshake::parse(b"RRLY1 HOST"), Some(Handshake::Host));
         assert_eq!(Handshake::parse(b"RRLY1 JOIN AB23CD"), Some(Handshake::Join("AB23CD".into())));
-        for bad in [&b"RRLY1 HOST "[..], b"RRLY2 HOST", b"HOST", b"", b"RRLY1 JOIN", &[0xC3, 0x28]] {
+        for bad in [&b"RRLY1 HOST "[..], b"RRLY2 HOST", b"HOST", b"", b"RRLY1 JOIN", &[0xC3, 0x28]]
+        {
             assert_eq!(Handshake::parse(bad), None, "{bad:?}");
         }
         let join = Handshake::Join("XYZ234".into());

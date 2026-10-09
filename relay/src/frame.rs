@@ -1,6 +1,8 @@
 //! Frames: `u32` big-endian payload length, then the payload. An empty payload is a keepalive.
 
 use std::io::{self, ErrorKind, Read, Write};
+use std::net::TcpStream;
+use std::time::{Duration, Instant};
 
 /// Largest payload a frame may carry. A longer length is a protocol error.
 pub const MAX_FRAME: usize = 65_536;
@@ -38,6 +40,30 @@ pub(crate) fn encode_frame(prefix: &[u8], payload: &[u8]) -> io::Result<Vec<u8>>
     frame.extend_from_slice(prefix);
     frame.extend_from_slice(payload);
     Ok(frame)
+}
+
+/// Reads under one overall deadline, so a peer cannot stretch a handshake forever by
+/// trickling bytes (or keepalives) just inside a per-read timeout.
+pub(crate) struct Deadline<'a> {
+    stream: &'a TcpStream,
+    until: Instant,
+}
+
+impl<'a> Deadline<'a> {
+    pub(crate) fn new(stream: &'a TcpStream, timeout: Duration) -> Self {
+        Self { stream, until: Instant::now() + timeout }
+    }
+}
+
+impl Read for Deadline<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let left = self.until.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return Err(ErrorKind::TimedOut.into());
+        }
+        self.stream.set_read_timeout(Some(left))?;
+        self.stream.read(buf)
+    }
 }
 
 #[cfg(test)]
