@@ -701,7 +701,7 @@ def build_player():
           "camera_distance": 4.5, "camera_height": 0.6, "camera_offset": [0.0, 0.0, 0.0],
           "max_slope": 0.7853982, "max_step_height": 0.35, "push_bodies": True, "turn_speed": 10.0,
           "crouch_height": 0.0, "crouch_multiplier": 0.5}
-    ent("Player", pos=(0, DECK_Y + 0.9 + 0.01, 0),
+    ent("Player", pos=(0, DECK_Y + 0.9 + 0.01, 0), classes=("player",),
         physics_body={"simulation": "Cpu", "solver": "Simplified"},
         rigid_body={"kind": "Kinematic"},
         collider={"shape": {"Capsule": {"half_height": 0.6, "radius": 0.3}}, "friction": 0.5,

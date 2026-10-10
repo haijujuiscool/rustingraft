@@ -4,12 +4,12 @@
 //! hashed by world position, so the facets stay put while the camera moves. The ring's
 //! inner band swells gently (rebuilt per frame); its swell fades to nothing at both the
 //! near grid's flat rim and the still outer ring, so the meshes meet without a seam.
-//! Around each island the water turns turquoise over its sunken sand: every vertex's U
-//! picks a shade from a deep-to-shallow gradient texture by world position.
+//! Around each island the water turns turquoise over its sunken sand: every vertex's
+//! colour is a deep-to-shallow shade picked by world position.
 
 use raft_sim::content::ISLANDS;
 use raft_sim::debris::wave;
-use rusting_engine::assets::{MeshVertex, TextureAsset, TextureColorSpace, TextureSampler, TextureWrap};
+use rusting_engine::assets::MeshVertex;
 use rusting_engine::prelude::{AssetServer, CubeSpawn, GameScene, MaterialAsset, Transform};
 use rusting_engine::runtime::MeshRenderer;
 use rusting_engine::{Handle, MeshAsset};
@@ -29,10 +29,9 @@ const HOLE: i32 = 5;
 const BAND: i32 = 16;
 /// Flat skirt beyond the ring, past the camera's far plane.
 const SKIRT: f32 = 3000.0;
-/// Open sea and island shallows (linear), and the gradient's steps between them.
+/// Open sea and island shallows (linear).
 const DEEP: [f32; 3] = [0.008, 0.065, 0.1];
 const SHALLOW: [f32; 3] = [0.05, 0.42, 0.4];
-const SHADES: u32 = 32;
 
 #[derive(Default)]
 pub struct Ocean {
@@ -45,11 +44,9 @@ pub struct Ocean {
 impl Ocean {
     pub fn update(&mut self, scene: &mut GameScene, cam: [f32; 3], t: f64) {
         let [near, far, band] = *self.meshes.get_or_insert_with(|| {
-            let texture = scene.create_texture(gradient());
             let material = scene.create_material(MaterialAsset {
                 name: "view.ocean".into(),
                 base_color: [1.0; 4],
-                base_color_texture: Some(texture),
                 roughness: 0.35,
                 metallic: 0.0,
                 ..MaterialAsset::default()
@@ -211,9 +208,9 @@ fn tri(v: &mut Vec<MeshVertex>, o: [f32; 2], a: [f32; 3], b: [f32; 3], c: [f32; 
         v.push(MeshVertex {
             position,
             normal,
-            uv: [shade(shallow(o[0] + position[0], o[1] + position[2])), 0.5],
+            uv: [0.0; 2],
             tangent: [1.0, 0.0, 0.0, 1.0],
-            color: [1.0; 4],
+            color: shade(shallow(o[0] + position[0], o[1] + position[2])),
         });
     }
 }
@@ -231,32 +228,10 @@ fn shallow(x: f32, z: f32) -> f32 {
     })
 }
 
-/// The gradient texel centre for shallowness `s`.
-fn shade(s: f32) -> f32 {
-    (0.5 + s * (SHADES - 1) as f32) / SHADES as f32
-}
-
-/// `SHADES` x 1 texels from `DEEP` to `SHALLOW`, sRGB-encoded so the dark end keeps
-/// its precision.
-fn gradient() -> TextureAsset {
-    let srgb = |l: f32| {
-        let e = if l <= 0.003_130_8 { 12.92 * l } else { 1.055 * l.powf(1.0 / 2.4) - 0.055 };
-        (e * 255.0).round().clamp(0.0, 255.0) as u8
-    };
-    let rgba8 = (0..SHADES)
-        .flat_map(|i| {
-            let s = i as f32 / (SHADES - 1) as f32;
-            let [r, g, b] = [0, 1, 2].map(|k| srgb(DEEP[k] + (SHALLOW[k] - DEEP[k]) * s));
-            [r, g, b, 255]
-        })
-        .collect();
-    let wrap = [TextureWrap::ClampToEdge; 2];
-    TextureAsset {
-        size: [SHADES, 1],
-        rgba8,
-        color_space: TextureColorSpace::Srgb,
-        sampler: TextureSampler { wrap, ..TextureSampler::default() },
-    }
+/// The vertex colour (linear, like the material's) for shallowness `s`.
+fn shade(s: f32) -> [f32; 4] {
+    let [r, g, b] = [0, 1, 2].map(|k| DEEP[k] + (SHALLOW[k] - DEEP[k]) * s);
+    [r, g, b, 1.0]
 }
 
 pub(super) fn hash(x: i32, z: i32) -> u32 {
@@ -318,7 +293,14 @@ mod tests {
         assert_eq!(shallow(d.x + 0.5 * d.radius, d.z), 1.0);
         assert!((0.0..1.0).contains(&shallow(d.x + 1.2 * d.radius, d.z)));
         assert_eq!(shallow(d.x + 1.45 * d.radius, d.z), 0.0);
-        assert_eq!(shade(0.0), 0.5 / SHADES as f32);
-        assert_eq!(gradient().rgba8.len(), 4 * SHADES as usize);
+        assert_eq!(shade(0.0)[..3], DEEP);
+        assert!((0..3).all(|k| (shade(1.0)[k] - SHALLOW[k]).abs() < 1e-6));
+        // Vertices are shaded by world position: `o` plus the local corner.
+        let mut v = Vec::new();
+        let q = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 1.0]];
+        quad(&mut v, [d.x, d.z], q, false);
+        quad(&mut v, [1.0e5, 1.0e5], q, false);
+        assert!(v[..6].iter().all(|v| v.color == shade(1.0)));
+        assert!(v[6..].iter().all(|v| v.color == [DEEP[0], DEEP[1], DEEP[2], 1.0]));
     }
 }

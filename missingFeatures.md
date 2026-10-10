@@ -6,63 +6,59 @@ workaround can go once the engine has the feature.
 
 ## Features
 
-### Faster raycasts (broadphase)
+### Raycasts before the first physics step
 
-`CpuPhysics::raycast_where` (`src/runtime/cpu_physics.rs:694`) tests every collider for
-every ray. The world has about 1,500 objects, and the game samples island heights with
-about 21,000 downward rays: done in one go it froze the game for over 5 seconds, long
-enough to time out an online connect.
+`GameScene::raycast` reads `PhysicsWorld` bodies, which only `step_cpu_physics` fills
+(`set_bodies`, `src/runtime/cpu_physics.rs:1948`). On the first fixed tick
+(`fixed_tick` 0) the game's tick sees no collider at all. Child colliders (the island
+ground) also take the `GlobalTransform` propagated after the previous frame
+(`src/runtime/cpu_physics.rs:2196`), and the first windowed frame runs several steps
+(up to 8) before any propagation, so their bodies sit at unpropagated poses until a step
+in a later frame: a grid sampled at `fixed_tick` 1 found 484 of 8660 heights.
+Scenarios do not show it, since their tick 0 is a zero-delta frame that propagates first.
 
-- Instead: `src/ground.rs` samples a few rows per main-menu tick and finishes the rest
-  before a session starts.
-- Wanted: a BVH or grid over static colliders, so a ray only tests the colliders near it.
+- Instead: `tick` in `src/app.rs` builds `SceneGround` once `fixed_tick` is past the
+  value it had in the first frame, and the session waits for it.
+- Wanted: bodies built and posed from propagated `GlobalTransform`s when the scene loads,
+  so rays hit from tick 0.
 
-### Raycast that keeps only some objects
+### Reading the pulled third-person shoulder
 
-`GameScene::raycast_skipping` skips classes, but there is no "only hit class X" and no
-filter by name. The game's moving objects (`debris.*`, `enemy.*`, `avatar.*`, pooled and
-spawned copies) are not in classes.
+The controller's camera sweep (`player_look`, `src/runtime/player.rs:367`) pulls the
+over-the-shoulder offset in from walls beside the player, then the camera in from walls
+behind, but keeps the pulled share of the offset (`shoulder`) to itself. The game's aim
+starts at the shoulder, so it needs that point.
 
-- Instead: `src/ground.rs` and `src/player/mod.rs` (`fn ray`) re-cast past unwanted hits
-  up to 4 or 8 times, checking `hit.name` each time.
-- Wanted: `raycast_in_class(origin, dir, max, class)` and/or a `raycast_where` on
-  `GameScene` that takes a closure over the hit name or entity.
-
-### Per-vertex colour in `MeshVertex`
-
-`MeshVertex` (`src/assets/mod.rs:907`) has position, normal, uv and tangent, no colour.
-
-- Instead: the ocean shallows (`src/view/ocean.rs`) put a 32x1 gradient texture made with
-  `scene.create_texture` on the mesh and pick the colour through the UVs.
-- Wanted: an optional `color: [f32; 4]` per vertex, multiplied into the base colour.
-
-### Third-person camera collision that includes the shoulder offset
-
-The controller's camera sweep (`src/runtime/player.rs`, `CAMERA_RADIUS`) starts at the
-orbit centre and ignores the camera offset, so an over-the-shoulder camera clips into
-walls beside the player.
-
-- Instead: `third_person` in `src/player/mod.rs` casts from the centre to the shoulder,
-  then from the shoulder backwards, and sets the offset and distance every frame.
-- Wanted: the controller sweeps centre -> offset -> camera itself.
+- Instead: `shoulder` in `src/player/mod.rs` repeats the centre-to-shoulder ray (0.3 m off
+  walls, not the engine's 0.2 m sphere) every frame, sets the pulled offset and aims from
+  it. The camera distance is left to the engine.
+- Wanted: the pulled offset or pivot readable, such as a `PlayerController` field that
+  `player_look` writes.
 
 ### Hardened relay
 
-The engine relay (`run_relay`, `src/net.rs`) is fine on a LAN but not for a relay open to
-the internet on a home server: one lock over every room, no per-IP connection or rate
-limits, no bandwidth cap, no limit on wrong-token guesses (its own `ponytail:` note says
-so), plaintext passwords.
+2.4.0's `run_relay_with` (`src/net.rs:863`, `RelayLimits`) caps connections overall and
+per address (IPv6 per /64), new connections per address per minute and the read rate per
+connection, skips failed accepts, and gives each handshake its own thread and a deadline.
+Still missing next to the game's relay: forwarding writes straight to each socket while
+holding the one lock over every room (its `ponytail:` note, `src/net.rs:829`; `forward`,
+`src/net.rs:1048`), so a peer that stops reading stalls forwarding, room opens and joins
+in every room on the relay for up to 5 s (the write timeout) instead of filling its own
+send queue; no cap on open rooms or on clients in a room; no separate limit on room opens
+and join attempts; no idle timeout after the handshake; a sender over the rate is slowed,
+not dropped.
 
 - Instead: Rusting Raft ships its own std-only relay (`relay/`, `docs/relay.md`) with
   per-IP limits, join and room rate limits, a handshake deadline, per-connection
   bandwidth caps and send queues, and a systemd sandbox unit
-  (`deploy/rusting-relay.service`). The game client talks to it with `net/` (`raft_net`).
+  (`deploy/rusting-relay.service`). The game client talks to it with `net/` (`raft_net`),
+  whose protocol differs from `NetSession`'s.
 - Wanted: those limits in `run_relay`, so games can use `NetSession::host_room` /
   `join_room` directly.
 
 ### Scenario step for the mouse wheel
 
-Scenario steps (`StepAction`, `src/scenario.rs:1038`) can move the pointer, click a
+Scenario steps (`StepAction`, `src/scenario.rs:1046`) can move the pointer, click a
 label and press actions, but cannot turn the mouse wheel. The game's long windows
 (Workbench, Logbook) sit in an egui `ScrollArea` (`src/ui/windows.rs:75`), and `click`
 only finds text that is visible, so rows below the fold (Wood Farm, Radio Station) cannot
@@ -76,12 +72,12 @@ be clicked by label.
 
 ### Cursor grab that follows mouse look and focus
 
-The controller's look code (`src/runtime/player.rs:316`) frees the cursor when mouse look
-goes off or Esc goes down, but grabs it again only on the next left click. So after a
-window closes (`GameScene::set_mouse_look(.., true)`, `src/project_runner.rs:861`) the
-camera does not turn until the player clicks. Losing focus also keeps the grab:
-`RuntimeInput::record_focus` (`crates/rusting-core/src/input.rs:235`) releases keys only,
-and `GameScene` has no call to grab or free the cursor.
+The controller's look code (`player_look`, `src/runtime/player.rs:326`) frees the cursor
+when mouse look goes off or Esc goes down, but grabs it again only on the next left click.
+So after a window closes (`GameScene::set_mouse_look(.., true)`,
+`src/project_runner.rs:872`) the camera does not turn until the player clicks. Losing focus
+also keeps the grab: `RuntimeInput::record_focus` (`crates/rusting-core/src/input.rs:235`)
+releases keys only, and `GameScene` has no call to grab or free the cursor.
 
 - Instead: `cursor` in `src/app.rs` writes `RuntimeInput::set_cursor_captured` through
   `scene.world().resource_mut::<RuntimeInput>()` every frame: grabbed while mouse look is
@@ -95,7 +91,7 @@ and `GameScene` has no call to grab or free the cursor.
 
 ### Scenario step for a raw key
 
-Scenario `press` and `tap` (`StepAction`, `src/scenario.rs:1038`) take a named action
+Scenario `press` and `tap` (`StepAction`, `src/scenario.rs:1046`) take a named action
 only. A key that no action uses, such as the Windows key (`SuperLeft`), cannot be pressed
 in a scenario.
 
@@ -107,8 +103,9 @@ in a scenario.
 
 Clip sampling (`AnimationTrack::sample`, `lerp` in `src/runtime/animation.rs:265`) and
 the crossfade (`mix`, `src/runtime/animation.rs:591`) lerp Orientation keys component by
-component, with no sign check and no renormalising. Two keys for the same rotation with
-opposite signs (q and -q) pass near zero in between, and the bone collapses or spins. A
+component, with no sign check (the result is only normalised when written). Two keys for
+the same rotation with opposite signs (q and -q) pass near zero in between, and the bone
+collapses or spins. A
 crossfade also keeps a track that only the old clip keys at full weight, so that bone
 stays where the old clip left it.
 
@@ -129,21 +126,12 @@ stays where the old clip left it.
   (`src/shaders/compute/cloth.comp:23`) fails with "global const initializers must be
   constant", because that glslang does not fold `uintBitsToFloat`. The literal
   `0.16666667` rounds to the same float (0x3E2AAAAB) and builds with every glslang.
-- `run_relay` returns on the first failed `accept` (`let stream = stream?;`,
-  `src/net.rs:359`). A transient error such as running out of file descriptors stops
-  the whole relay; `continue` (maybe after a short sleep) keeps it serving.
-- `NetSession::host_on` runs each handshake on the accept thread (noted in its
-  `ponytail:` comment), so one silent client delays every join by up to 5 seconds.
 - The frame cap (`FramePacer::request_next_frame`, `src/rendering/frame_pacer.rs:77`)
   sets `next_frame = now + interval` from the moment the loop wakes, so each late wake
   from `ControlFlow::WaitUntil` adds to the period and the rate settles below the cap.
   `next_frame += interval` (back to `now` only when far behind) holds the cap. The
   game's Max FPS setting (`GameScene::set_max_fps`) inherits this.
 - `FrameTime::real_delta` is documented as real time since the last frame, but
-  `RuntimeApp::update` (`src/runtime/mod.rs:642`) clamps it to one fixed step while the
+  `RuntimeApp::update` (`src/runtime/mod.rs:686`) clamps it to one fixed step while the
   app is overloaded, so a frame counter built on it never reads below 60. The game's FPS
   counter (`src/ui/mod.rs`) reads `Instant` instead.
-- Flat shading (`src/rendering/scene_renderer.rs:8771`) calls `dFdx`/`dFdy` inside an
-  `if` on a varying. The flag is per material, so it works in practice, but derivatives
-  in non-uniform control flow are undefined in GLSL; computing `face` before the `if`
-  is safe on every driver.

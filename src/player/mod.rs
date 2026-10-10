@@ -57,7 +57,7 @@ const ORBIT: f32 = 5.0;
 /// Third-person camera offset (right, up) from the orbit centre: over the right
 /// shoulder so the avatar sits left of the crosshair.
 const SHOULDER: [f32; 3] = [0.9, 1.2, 0.0];
-/// The third-person camera keeps this far off walls.
+/// The third-person shoulder keeps this far off walls.
 const CAMERA_GAP: f32 = 0.3;
 /// Held tools are drawn this much larger in third person so they read.
 const HELD_SCALE: f32 = 1.5;
@@ -83,9 +83,10 @@ const GHOST: &str = "local.ghost";
 const GHOST_BOX: &str = "local.ghost/tpl.ghost.box";
 const LOCAL_NAMES: [&str; 6] = [HELD, BOLT, ROPE, BOBBER, LINE, GHOST];
 
-/// Raycast hits on these are not surfaces (templates, our own and the view's
-/// moving things).
-const SKIP: [&str; 7] = ["tpl.", "local.", "avatar.", "pool.", "debris.", "enemy.", PLAYER];
+/// Our rays pass through these classes: the player's capsule. Nothing else that is not a
+/// surface (templates far below, our own and the view's moving things) has a collider;
+/// one that gets one can join the class, spawned copies keep their template's.
+const SKIP: [&str; 1] = ["player"];
 
 /// The scene's controller settings, read on the first frame of the process: land
 /// movement and the third-person camera go back to these.
@@ -307,7 +308,7 @@ impl Local {
         let vertical = in_water
             .then(|| swim::vertical_speed(feet.y, surface, k.jump, k.dive, pc.vertical_speed, dt));
         let eye = if me.downed { DOWNED_EYE } else { EYE };
-        let (offset, orbit) = if first { (eye, 0.0) } else { third_person(scene, &pc, &base, body) };
+        let (offset, orbit) = if first { (eye, 0.0) } else { (shoulder(scene, &pc, &base, body), ORBIT) };
         let lift = if first { 0.0 } else { base.camera_height };
         let origin = body + frame_of(pc.yaw, offset) + V3::new(0.0, lift, 0.0);
         let (sp, cp) = pc.pitch.sin_cos();
@@ -988,46 +989,23 @@ fn frame_of(yaw: f32, [x, y, z]: [f32; 3]) -> V3 {
     V3::new(x * c + z * s, y, -x * s + z * c)
 }
 
-/// Third-person camera offset and distance, pulled in so neither the shoulder nor the
-/// camera sits inside geometry (the engine sweeps only from the orbit centre, without
-/// the offset). Set every frame, the first one included.
-fn third_person(
-    scene: &GameScene,
-    pc: &PlayerController,
-    base: &PlayerController,
-    body: V3,
-) -> ([f32; 3], f32) {
+/// Third-person camera offset, pulled in so the shoulder, where the aim starts, is not
+/// inside geometry. The engine sweeps the same way but keeps its pulled offset to itself;
+/// it also pulls the camera in from walls behind the shoulder. Set every frame, the
+/// first one included.
+fn shoulder(scene: &GameScene, pc: &PlayerController, base: &PlayerController, body: V3) -> [f32; 3] {
     let centre = body + V3::new(0.0, base.camera_height, 0.0);
     let side = frame_of(pc.yaw, SHOULDER);
     let reach = side.length();
     let k = ray(scene, centre, side.normalize(), reach + CAMERA_GAP)
         .map_or(1.0, |(p, _)| ((p.dist(centre) - CAMERA_GAP) / reach).clamp(0.0, 1.0));
-    let pivot = centre + side * k;
-    let (sp, cp) = pc.pitch.sin_cos();
-    let back = V3::new(pc.yaw.sin() * cp, -sp, pc.yaw.cos() * cp);
-    let distance = ray(scene, pivot, back, ORBIT + CAMERA_GAP)
-        .map_or(ORBIT, |(p, _)| (p.dist(pivot) - CAMERA_GAP).max(0.2));
-    (SHOULDER.map(|v| v * k), distance)
+    SHOULDER.map(|v| v * k)
 }
 
-/// The nearest scene surface on the ray (point, normal), past templates, our own
-/// objects and moving things.
+/// The nearest scene surface on the ray (point, normal), past the player.
 fn ray(scene: &GameScene, origin: V3, dir: V3, max: f32) -> Option<(V3, V3)> {
-    let mut from = origin;
-    let mut left = max;
-    for _ in 0..8 {
-        let hit = scene.raycast(from.to_array(), dir.to_array(), left)?;
-        let point = V3::from_array(hit.point);
-        if !SKIP.iter().any(|p| hit.name.starts_with(p)) {
-            return Some((point, V3::from_array(hit.normal)));
-        }
-        left -= hit.distance + 0.01;
-        from = point + dir * 0.01;
-        if left <= 0.0 {
-            return None;
-        }
-    }
-    None
+    let hit = scene.raycast_skipping(origin.to_array(), dir.to_array(), max, &SKIP)?;
+    Some((V3::from_array(hit.point), V3::from_array(hit.normal)))
 }
 
 /// The world item F puts in the sac: the one closest to the aim ray among those whose

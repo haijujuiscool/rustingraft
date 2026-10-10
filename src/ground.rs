@@ -7,90 +7,51 @@ use rusting_engine::prelude::GameScene;
 const STEP: f32 = 2.0;
 /// Rays start this high and look down.
 const TOP: f32 = 200.0;
-/// Non-ground colliders (trees, crates) a ray may pass before giving up.
-const MAX_PASSES: usize = 4;
 /// Grids reach this far past an island's radius: walkable colliders do too (Hook Isle's
 /// dock, wide domes).
 const MARGIN: f32 = 10.0;
 
-/// One height grid per island. The main menu samples it a little per tick;
-/// `finish` samples the rest before a session starts.
+/// One height grid per island, sampled when made: ~21k rays, about 11 ms in release.
 pub struct SceneGround {
     islands: Vec<Grid>,
-    ground: std::collections::HashSet<String>,
 }
 
 struct Grid {
     min_x: f32,
     min_z: f32,
     cols: usize,
-    /// Row by row; shorter than `cols * cols` until sampled.
+    /// Row by row.
     heights: Vec<Option<f32>>,
 }
 
 impl SceneGround {
-    pub fn new(scene: &mut GameScene) -> SceneGround {
+    pub fn new(scene: &GameScene) -> SceneGround {
         let islands = ISLANDS
             .iter()
             .map(|island| {
                 let r = island.radius + MARGIN;
                 let cols = (2.0 * r / STEP).ceil() as usize + 1;
+                let (min_x, min_z) = (island.x - r, island.z - r);
+                let heights = (0..cols * cols)
+                    .map(|i| {
+                        let x = min_x + (i % cols) as f32 * STEP;
+                        let z = min_z + (i / cols) as f32 * STEP;
+                        // Highest "ground" surface under (x, z).
+                        scene
+                            .raycast_only([x, TOP, z], [0.0, -1.0, 0.0], TOP + 50.0, &["ground"])
+                            .map(|hit| hit.point[1])
+                    })
+                    .collect();
                 Grid {
-                    min_x: island.x - r,
-                    min_z: island.z - r,
+                    min_x,
+                    min_z,
                     cols,
-                    heights: Vec::with_capacity(cols * cols),
+                    heights,
                 }
             })
             .collect();
-        SceneGround {
-            islands,
-            ground: scene.in_class("ground").into_iter().collect(),
-        }
+        SceneGround { islands }
     }
-
-    /// Samples rows until `budget` has passed; ~21k rays in all, each scans
-    /// every collider, which takes seconds.
-    pub fn sample_for(&mut self, scene: &GameScene, budget: std::time::Duration) {
-        let start = std::time::Instant::now();
-        for g in &mut self.islands {
-            while g.heights.len() < g.cols * g.cols {
-                if start.elapsed() >= budget {
-                    return;
-                }
-                let z = g.min_z + (g.heights.len() / g.cols) as f32 * STEP;
-                for col in 0..g.cols {
-                    let x = g.min_x + col as f32 * STEP;
-                    g.heights.push(sample(scene, &self.ground, x, z));
-                }
-            }
-        }
-    }
-
-    pub fn finish(&mut self, scene: &GameScene) {
-        self.sample_for(scene, std::time::Duration::MAX);
-    }
-}
-
-/// Highest "ground" surface under (x, z).
-fn sample(
-    scene: &GameScene,
-    ground: &std::collections::HashSet<String>,
-    x: f32,
-    z: f32,
-) -> Option<f32> {
-    if ground.is_empty() {
-        return None;
-    }
-    let mut y = TOP;
-    for _ in 0..MAX_PASSES {
-        let hit = scene.raycast([x, y, z], [0.0, -1.0, 0.0], y + 50.0)?;
-        if ground.contains(&hit.name) {
-            return Some(hit.point[1]);
-        }
-        y = hit.point[1] - 0.01;
-    }
-    None
 }
 
 impl raft_sim::Ground for SceneGround {
@@ -121,7 +82,6 @@ mod tests {
         };
         let ground = SceneGround {
             islands: vec![grid],
-            ground: Default::default(),
         };
         assert_eq!(ground.height_at(10.4, -4.0), Some(1.0));
         assert_eq!(ground.height_at(11.6, -3.5), Some(2.0));

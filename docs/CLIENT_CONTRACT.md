@@ -165,8 +165,12 @@ Captures land in `tests/shots/` (git-ignored); open them to look at the result.
   is game code (gravity, speed through `set_player`). Teleport with `set_position` and
   zero `vertical_speed`.
 - `raycast` sees only colliders with a physics body, also hits sensors, and a ray that
-  starts inside a collider passes it. Island ground colliders are in class `ground`
-  (on the collider object itself); `SceneGround` samples them once on the first tick.
+  starts inside a collider passes it. It hits nothing before physics has stepped once,
+  and child colliders sit at a stale pose until a step after the first frame (which can
+  run several steps). Island ground colliders are in class `ground` (on the collider
+  object itself); `SceneGround` samples them once, on the first tick after a step that
+  followed the first frame. The player's capsule is in class `player`, which the
+  player's own rays skip.
 - `pressed` in the frame hook sees this frame's presses; player code runs in the frame.
 - `set_paused` stops fixed ticks and with them `Session::update`: never pause while
   online.

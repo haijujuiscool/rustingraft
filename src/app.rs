@@ -8,7 +8,7 @@ use crate::ui::Ui;
 use crate::view::View;
 use raft_net::{Session, Status};
 use raft_sim::{Event, Request, World};
-use rusting_engine::prelude::GameScene;
+use rusting_engine::prelude::{FrameTime, GameScene};
 use rusting_engine::runtime::RuntimeInput;
 
 pub const TICK_DT: f32 = 1.0 / 60.0;
@@ -22,8 +22,10 @@ pub struct Game {
     settings: Settings,
     /// Events from the ticks since the last frame.
     events: Vec<Event>,
-    /// Sampled during menu ticks, finished before a session starts.
+    /// Sampled once physics has stepped with propagated poses (see `tick`).
     ground: Option<SceneGround>,
+    /// `fixed_tick` during the first frame; transforms propagate after it.
+    first_frame_tick: Option<u64>,
     has_save: bool,
     notice: Option<String>,
     /// The scene controller's own look sensitivity, scaled by the setting.
@@ -50,6 +52,7 @@ impl Game {
             settings,
             events: Vec::new(),
             ground: None,
+            first_frame_tick: None,
             notice: None,
             base_look,
             look: false,
@@ -79,9 +82,14 @@ impl Game {
             }
         }
         scene.set_counter("phase", self.phase as i32);
-        let ground = self.ground.get_or_insert_with(|| SceneGround::new(scene));
-        let Some(session) = self.session.as_mut() else {
-            ground.sample_for(scene, std::time::Duration::from_millis(6));
+        // Physics builds its bodies when it steps, and child colliders (island ground)
+        // take the pose propagated after the last frame. The first frame can run
+        // several steps before any propagation, so wait for a step after it.
+        let tick = scene.world().resource::<FrameTime>().fixed_tick;
+        if self.ground.is_none() && self.first_frame_tick.is_some_and(|t| tick > t) {
+            self.ground = Some(SceneGround::new(scene));
+        }
+        let (Some(session), Some(ground)) = (self.session.as_mut(), self.ground.as_ref()) else {
             return;
         };
         let events = session.update(TICK_DT, ground);
@@ -120,6 +128,8 @@ impl Game {
 
     /// Rendered frame: player -> ui -> view, then the collected requests and actions.
     pub fn frame(&mut self, scene: &mut GameScene, dt: f32) {
+        self.first_frame_tick
+            .get_or_insert(scene.world().resource::<FrameTime>().fixed_tick);
         let mut requests: Vec<Request> = Vec::new();
         let actions = {
             let session = self.session.as_ref();
@@ -173,13 +183,6 @@ impl Game {
     }
 
     pub fn act(&mut self, scene: &mut GameScene, action: UiAction) {
-        // Before any session exists, so its connect timeout does not run during the sampling.
-        if matches!(
-            action,
-            UiAction::StartSolo | UiAction::LoadWorld | UiAction::Host { .. } | UiAction::Join { .. }
-        ) {
-            self.ground.get_or_insert_with(|| SceneGround::new(scene)).finish(scene);
-        }
         match action {
             UiAction::Request(req) => {
                 if let Some(session) = self.session.as_mut() {
