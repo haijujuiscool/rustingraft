@@ -1,0 +1,14 @@
+{"name": "Turning the camera on the spot turns the avatar to face where it looks; turning it while walking keeps the walk facing", "seed": 7, "ticks": 140, "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 20, "press": "player.right"},
+  {"tick": 45, "release": "player.right"},
+  {"tick": 60, "expect": {"entity": "Player Avatar", "path": "/transform/rotation", "equals": [0.0, -1.5708, 0.0], "tolerance": 0.1}},
+  {"tick": 70, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.4}},
+  {"tick": 71, "within": 100, "expect": {"entity": "Player Avatar", "path": "/transform/rotation", "equals": [0.0, 0.0, 0.0], "tolerance": 0.02}},
+  {"tick": 100, "until": 104, "expect": {"entity": "Player Avatar", "path": "/transform/rotation", "equals": [0.0, 0.0, 0.0], "tolerance": 0.02}},
+  {"tick": 105, "press": "player.right"},
+  {"tick": 118, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.9}},
+  {"tick": 120, "until": 130, "expect": {"entity": "Player Avatar", "path": "/transform/rotation", "equals": [0.0, -1.5708, 0.0], "tolerance": 0.1}},
+  {"tick": 131, "release": "player.right"}
+]}

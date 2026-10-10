@@ -171,9 +171,9 @@ MODELS = {
     "Characters": [
         ("Players (up to 8)",
          [C + "adventurer.glb", C + "casual.glb", C + "beach_character.glb", C + "worker.glb", C + "farmer.glb",
-          C + "kenney-mini/character-male-a.glb", C + "kenney-mini/character-female-a.glb"],
-         "Quaternius humans are 1.86 m, face +Z. No swim clip: use Run (fast swim) / Idle (float) tilted. "
-         "Kenney mini (12 variants) is 0.7 m: scale 2.5."),
+          C + "kenney-mini/character-male-e.glb", C + "kenney-mini/character-female-a.glb"],
+         "In use: Kenney mini male-e for every player (0.7 m, fit to height, slimmed in bind space by SLIM; "
+         "build_scene.py adds hand-keyed swim / tread clips). Quaternius humans are 1.86 m, face +Z, no swim clip."),
         ("Fisherman Barnaby",
          [C + "pirate_captain.glb"],
          "Wave/Yes/No clips for dialogue."),
@@ -185,7 +185,8 @@ MODELS = {
           C + "kenney-mini/character-male-e.glb", C + "kenney-mini/character-male-f.glb", C + "kenney-mini/character-female-b.glb",
           C + "kenney-mini/character-female-c.glb", C + "kenney-mini/character-female-d.glb", C + "kenney-mini/character-female-e.glb",
           C + "kenney-mini/character-female-f.glb"],
-         "Scale 2.5. Clips sit / interact-right for farm work, emote-yes on rescue. Or reuse Quaternius humans (tinted)."),
+         "In use: male-b, female-e, male-f, female-f, male-d, female-b (SURVIVORS). Clips sit / interact-right "
+         "for farm work, emote-yes on rescue."),
     ],
     "Creatures": [
         ("Sardine", [CR + "fish_sardine.glb"], "Target ~0.25 m long. Faces +Z."),

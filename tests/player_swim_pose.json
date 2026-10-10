@@ -1,0 +1,22 @@
+{"name": "Swimming strokes laid forward, standing still in the water treads upright", "seed": 7, "ticks": 360,
+ "contact_sheet": "shots/player_swim_pose.sheet.png", "steps": [
+  {"tick": 1, "set": {"counter": "autostart", "value": 1}},
+  {"tick": 2, "within": 10, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/transform/position", "value": [0.0, 1.35, -1.0]}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": -1.5708}},
+  {"tick": 40, "press": "player.forward"},
+  {"tick": 41, "within": 140, "expect": {"counter": "player_swimming", "equals": 1}},
+  {"tick": 180, "until": 200, "expect": {"entity": "Player Avatar", "path": "/transform/rotation/0", "less_than": -1.2}},
+  {"tick": 185, "capture": {"path": "shots/player_swim_stroke.png", "hud": false}},
+  {"tick": 206, "capture": {"path": "shots/player_swim_stroke2.png", "hud": false}},
+  {"tick": 210, "release": "player.forward"},
+  {"tick": 210, "press": "player.left"},
+  {"tick": 250, "capture": {"path": "shots/player_swim_side.png", "hud": false}},
+  {"tick": 262, "capture": {"path": "shots/player_swim_side2.png", "hud": false}},
+  {"tick": 270, "release": "player.left"},
+  {"tick": 320, "until": 350, "expect": {"entity": "Player Avatar", "path": "/transform/rotation/0", "greater_than": -0.1}},
+  {"tick": 320, "until": 350, "expect": {"entity": "Player Avatar", "path": "/transform/position/1", "greater_than": -0.6}},
+  {"tick": 320, "until": 350, "expect": {"counter": "player_swimming", "equals": 1}},
+  {"tick": 325, "capture": {"path": "shots/player_tread.png", "hud": false}},
+  {"tick": 345, "capture": {"path": "shots/player_tread2.png", "hud": false}}
+]}

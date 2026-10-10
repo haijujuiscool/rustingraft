@@ -560,6 +560,41 @@ fn stockpile(p: &Painter, s: f32, screen: Rect, frame: &Frame, me: &Player) {
     }
 }
 
+/// Frames per second, counted over about half a second.
+#[derive(Default)]
+pub(super) struct Fps {
+    frames: u32,
+    seconds: f32,
+    shown: u32,
+}
+
+impl Fps {
+    /// Counts one frame of `real_dt` seconds; returns the rate to show (0 until the
+    /// first half second is in).
+    pub(super) fn tick(&mut self, real_dt: f32) -> u32 {
+        self.frames += 1;
+        self.seconds += real_dt;
+        if self.seconds >= 0.5 {
+            self.shown = (self.frames as f32 / self.seconds).round() as u32;
+            self.frames = 0;
+            self.seconds = 0.0;
+        }
+        self.shown
+    }
+}
+
+/// "60 FPS", small in the bottom-right corner, where no HUD part sits (F3's engine
+/// overlay is top right).
+pub(super) fn fps_counter(ctx: &egui::Context, s: f32, fps: u32) {
+    if fps == 0 {
+        return;
+    }
+    let p = ctx.layer_painter(LayerId::background());
+    let corner = ctx.screen_rect().right_bottom() - Vec2::splat(PAD * s * 0.5);
+    let text = format!("{fps} FPS");
+    style::shadow_text(&p, corner, Align2::RIGHT_BOTTOM, &text, font(13.0, s), SAND);
+}
+
 /// "E  Feed campfire": the key in a cap, then the text.
 fn prompt_chip(p: &Painter, s: f32, center: Pos2, prompt: &str) {
     let (key, text) = match prompt.split_once("  ") {
@@ -700,6 +735,19 @@ mod tests {
         assert!(relative_bearing(o, V3::xz(0.0, -10.0), 0.0).abs() < 1e-4);
         // Turned to face east, east is straight ahead.
         assert!(relative_bearing(o, V3::xz(10.0, 0.0), -FRAC_PI_2).abs() < 1e-4);
+    }
+
+    #[test]
+    fn fps_counts_frames_over_half_a_second() {
+        let mut fps = Fps::default();
+        // Nothing until half a second is in, then frames over that time.
+        for _ in 0..31 {
+            assert_eq!(fps.tick(1.0 / 64.0), 0);
+        }
+        assert_eq!(fps.tick(1.0 / 64.0), 64);
+        // Held until the next half second; a hitch drags the next reading down.
+        assert_eq!(fps.tick(0.25), 64);
+        assert_eq!(fps.tick(0.25), 4);
     }
 
     #[test]

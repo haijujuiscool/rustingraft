@@ -40,9 +40,9 @@ impl Fx {
         let w = frame.world;
         self.clock += dt;
         if self.ambience.is_empty() {
-            let ocean = loop_sound(scene, "sfx/ocean_loop.wav", 0.35);
+            let ocean = loop_sound(scene, "sfx/ocean_loop.wav", 0.075);
             let wind = loop_sound(scene, "sfx/wind_loop.wav", 0.1);
-            let lap = loop_sound(scene, "sfx/water_lap_loop.ogg", 0.25);
+            let lap = loop_sound(scene, "sfx/water_lap_loop.ogg", 0.06);
             self.ambience = vec![ocean, wind, lap];
             self.wind = Some(wind);
             self.next_creak = self.clock + 6.0;

@@ -16,5 +16,7 @@
   {"tick": 380, "release": "player.forward"},
   {"tick": 380, "release": "player.jump"},
   {"tick": 420, "until": 440, "expect": {"entity": "Player", "path": "/transform/position/1", "equals": 1.35, "tolerance": 0.25}},
-  {"tick": 440, "capture": "shots/player_climb.png"}
+  {"tick": 440, "capture": "shots/player_climb.png"},
+  {"tick": 445, "expect": {"entity": "Player Avatar.model.root", "path": "/transform/rotation", "equals": [0.0, 0.0, 0.0], "tolerance": 0.02}},
+  {"tick": 445, "expect": {"entity": "Player Avatar.model.leg-left", "path": "/transform/rotation", "equals": [0.0, 0.0, 0.0], "tolerance": 0.02}}
 ]}

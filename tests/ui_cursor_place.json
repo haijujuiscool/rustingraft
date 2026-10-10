@@ -1,0 +1,17 @@
+{"name": "Esc cancelling build placement grabs the cursor again with no click", "seed": 7, "ticks": 120, "files": {"world.json": "fixtures/player_world.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [-3.0, 1.35, -0.2]}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 1.5708}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.93}},
+  {"tick": 45, "tap": "build"},
+  {"tick": 46, "within": 55, "expect": {"counter": "ui_window", "equals": 1}},
+  {"tick": 60, "click": {"text": "Place", "index": 0}},
+  {"tick": 61, "within": 75, "expect": {"counter": "player_ghost", "equals": 2}},
+  {"tick": 61, "within": 75, "expect": {"counter": "cursor_captured", "equals": 1}},
+  {"tick": 85, "tap": "pause"},
+  {"tick": 86, "within": 90, "expect": {"counter": "player_ghost", "equals": 0}},
+  {"tick": 86, "until": 92, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 86, "within": 89, "expect": {"counter": "cursor_captured", "equals": 1}},
+  {"tick": 89, "until": 110, "expect": {"counter": "cursor_captured", "equals": 1}}
+]}

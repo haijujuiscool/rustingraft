@@ -11,6 +11,7 @@
 
 use super::ocean::{hash, unit};
 use super::{variant, Block};
+use crate::player::swim;
 use crate::shared::Frame;
 use raft_sim::content::{
     BoatKind, EnemyKind, ItemKind, GENERATOR_METAL, ISLANDS, LIGHTHOUSE_ATOLL, RUSTED_WRECK,
@@ -64,6 +65,8 @@ struct Mover {
     yaw: f32,
     /// Smoothed ground speed (m/s), for walk/idle clips.
     speed: f32,
+    /// Remote players: how far into the swim and tread poses.
+    swim: swim::Pose,
     seen: bool,
     /// Last text, glow or clip pushed, so they are set on change only.
     state: String,
@@ -78,6 +81,8 @@ struct Target {
     float: Option<f32>,
     /// Lies on its back (downed players without a die clip).
     lying: bool,
+    /// In the water: lies forward to stroke when moving, else stands up to tread.
+    swim: bool,
     /// Places at once instead of easing.
     snap: bool,
     /// Motion for models that do not animate (copies and blocks).
@@ -307,7 +312,8 @@ impl Movers {
             let key = format!("avatar.{pid}");
             let mut block = AVATAR;
             block.color = PLAYER_COLORS[pid as usize % PLAYER_COLORS.len()];
-            let target = Target { pos: p.pos, yaw: p.yaw, lying: p.downed, ..Target::default() };
+            let swims = p.in_water && !p.downed && p.seat.is_none();
+            let target = Target { pos: p.pos, yaw: p.yaw, lying: p.downed, swim: swims, ..Target::default() };
             let Some(at) = self.model(scene, &key, &pool, Some(block), target, t, dt) else {
                 continue;
             };
@@ -316,6 +322,8 @@ impl Movers {
                 (_, true) => "die",
                 (Some(seat), _) if seat.index == 0 => "drive",
                 (Some(_), _) => "sit",
+                _ if swims && speed > swim::STROKE_SPEED => "swim",
+                _ if swims => "tread",
                 _ if speed > 5.5 || (p.sprinting && speed > 1.0) => "sprint",
                 _ if speed > 0.6 => "walk",
                 _ => "idle",
@@ -511,6 +519,7 @@ impl Movers {
                 pos: target.pos,
                 yaw: target.yaw,
                 speed: 0.0,
+                swim: swim::Pose::default(),
                 seen: true,
                 state: String::new(),
             };
@@ -522,7 +531,13 @@ impl Movers {
         let k = if jump { 1.0 } else { 1.0 - (-10.0 * dt).exp() };
         let before = m.pos;
         m.pos = m.pos.lerp(target.pos, k);
-        m.yaw = ease_angle(m.yaw, target.yaw, k);
+        // Swimmers stroke the way they move, like the local avatar, not the way they look.
+        let face = if target.swim && m.speed > swim::STROKE_SPEED {
+            (before.x - m.pos.x).atan2(before.z - m.pos.z)
+        } else {
+            target.yaw
+        };
+        m.yaw = ease_angle(m.yaw, face, k);
         if dt > 0.0 && !jump {
             let v = before.with_y(0.0).dist(m.pos.with_y(0.0)) / dt;
             m.speed += (v - m.speed) * (1.0 - (-8.0 * dt).exp());
@@ -544,8 +559,11 @@ impl Movers {
         } else {
             m.lift
         };
-        // In-place objects animate on their own.
+        // In-place objects animate on their own; swimmers lean and rise either way.
         let p = if m.home.is_none() { target.pose } else { Pose::default() };
+        m.swim.step(target.swim, m.speed > swim::STROKE_SPEED, dt);
+        let (tilt, back, up) = m.swim.offsets(t as f32);
+        let p = Pose { up: p.up + up, fwd: p.fwd - back, pitch: p.pitch - tilt, ..p };
         let (s, c) = m.yaw.sin_cos();
         let at = [pos.x - s * p.fwd, pos.y + lift + p.up, pos.z - c * p.fwd];
         let world = scene.world();
@@ -637,6 +655,7 @@ impl Movers {
             pos: V3::ZERO,
             yaw: 0.0,
             speed: 0.0,
+            swim: swim::Pose::default(),
             seen: true,
             state: String::new(),
         });

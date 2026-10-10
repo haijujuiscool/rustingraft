@@ -311,6 +311,20 @@ impl Ui {
                             .custom_formatter(|v, _| format!("{:.0}%", v * 100.0)),
                     );
                     ui.end_row();
+                    ui.label("Max FPS");
+                    egui::ComboBox::from_id_salt("menu.settings.max_fps")
+                        .selected_text(fps_label(draft.max_fps))
+                        // The default 200 px cuts off "Unlimited" at a large UI scale.
+                        .height(f32::INFINITY)
+                        .show_ui(ui, |ui| {
+                            for fps in [30, 60, 120, 144, 240, 0] {
+                                ui.selectable_value(&mut draft.max_fps, fps, fps_label(fps));
+                            }
+                        });
+                    ui.end_row();
+                    ui.label("");
+                    ui.checkbox(&mut draft.show_fps, "Show FPS");
+                    ui.end_row();
                 });
             if in_game {
                 ui.label(style::note(
@@ -440,4 +454,12 @@ pub(super) fn card(
             ui.set_width(width * s);
             body(ui);
         });
+}
+
+/// A `Settings::max_fps` choice: 0 is no cap.
+fn fps_label(fps: u32) -> String {
+    match fps {
+        0 => "Unlimited".into(),
+        n => n.to_string(),
+    }
 }

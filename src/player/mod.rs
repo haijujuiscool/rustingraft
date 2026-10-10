@@ -16,7 +16,7 @@ mod build;
 mod fixtures;
 mod interact;
 mod reel;
-mod swim;
+pub mod swim;
 
 use crate::shared::{FishingUi, Frame, LocalHud, Window};
 use boat::Drive;
@@ -58,10 +58,6 @@ const CAMERA_GAP: f32 = 0.3;
 const HELD_SCALE: f32 = 1.5;
 /// Seconds the avatar keeps facing the aim after a tool is used.
 const FACE_HOLD: f32 = 0.8;
-/// Swimming: the avatar leans this far forward (rad, about 66 deg) and floats this
-/// much higher.
-const SWIM_TILT: f32 = 1.15;
-const SWIM_LIFT: f32 = 0.2;
 const BOLT_SPEED: f32 = 60.0;
 /// Seconds the bolt takes to come back.
 const BOLT_RETURN: f32 = 0.25;
@@ -114,10 +110,14 @@ pub struct Local {
     shown: HashSet<&'static str>,
     anim: &'static str,
     avatar_shown: Option<bool>,
-    /// Avatar yaw relative to the body, and how far into the swim pose (0..1).
+    /// Avatar yaw relative to the body, and how far into the water poses.
     avatar_yaw: f32,
-    swim_pose: f32,
+    swim: swim::Pose,
     face_left: f32,
+    /// Camera yaw last frame, and whether it turned since the avatar last walked: on the
+    /// spot the avatar faces where the camera looks.
+    look_yaw: f32,
+    face_camera: bool,
     /// Body-to-target distance (cm) when the last grapple ended.
     grapple_gap: Option<i32>,
     shots: i32,
@@ -190,11 +190,13 @@ impl Keys {
 
 impl Local {
     /// `ui_modal`: a window or menu has the pointer, so ignore gameplay input.
+    /// `cursor_free`: the cursor was held free (focus loss), so a click only grabs it.
     pub fn update(
         &mut self,
         scene: &mut GameScene,
         frame: &Frame,
         ui_modal: bool,
+        cursor_free: bool,
         out: &mut Vec<Request>,
     ) {
         self.hud.open = None;
@@ -246,7 +248,8 @@ impl Local {
             return;
         };
         let mut feet = body - V3::new(0.0, FEET_OFFSET, 0.0);
-        let k = if ui_modal { Keys::default() } else { Keys::read(scene) };
+        let mut k = if ui_modal { Keys::default() } else { Keys::read(scene) };
+        k.fire &= !cursor_free;
         let now = world.now();
         // A hitch must not move the hull past the sim's MAX_MOVE in one send.
         let dt = frame.dt.min(0.1);
@@ -438,11 +441,16 @@ impl Local {
         if tools && k.fire {
             self.face_left = FACE_HOLD;
         }
+        // Walking keeps the walk facing.
+        let walking = pc.velocity[0].hypot(pc.velocity[2]) >= 0.1;
+        self.face_camera = !walking && (self.face_camera || (pc.yaw - self.look_yaw).abs() > 1e-4);
+        self.look_yaw = pc.yaw;
         self.face_left = (self.face_left - dt).max(0.0);
         let face_aim = !busy
             && (k.aim
                 || building
                 || self.face_left > 0.0
+                || self.face_camera
                 || self.swing_left > 0.0
                 || self.shot.is_some()
                 || me.fishing.is_some());
@@ -854,8 +862,9 @@ impl Local {
         stretch(scene, LINE, tip, bob, 0.3);
     }
 
-    /// Avatar facing and swim pose. It faces the aim while a tool is in use, else the
-    /// walk direction; in the water it lies forward with a bob and a stroke sway.
+    /// Avatar facing and swim pose. It faces the aim while a tool is in use or after the
+    /// camera turned on the spot, else the walk direction; in the water it lies forward to
+    /// stroke or stands up to tread.
     #[allow(clippy::too_many_arguments)]
     fn pose_avatar(
         &mut self,
@@ -883,18 +892,12 @@ impl Local {
             let off = (want - self.avatar_yaw + PI).rem_euclid(2.0 * PI) - PI;
             self.avatar_yaw += off.clamp(-step, step);
         }
-        let to = if swimming { 1.0 } else { 0.0 };
-        self.swim_pose += (to - self.swim_pose) * (5.0 * dt).min(1.0);
-        let s = self.swim_pose;
-        let t = (now % 1000.0) as f32;
-        let sway = s * if moving { 0.14 } else { 0.04 } * (t * 3.2).sin();
-        let yaw = self.avatar_yaw + sway;
-        let tilt = SWIM_TILT * s;
-        // Pivot at the feet: slide them back so the middle of the body stays put.
-        let back = 0.9 * tilt.sin();
-        let y = -FEET_OFFSET * tilt.cos() + s * (SWIM_LIFT + 0.06 * (t * 2.4).sin());
+        // The climb-out dash is not a stroke.
+        self.swim.step(swimming, vx.hypot(vz) > swim::STROKE_SPEED && pc.dash_left <= 0.0, dt);
+        let (tilt, back, up) = self.swim.offsets((now % 1000.0) as f32);
+        let yaw = self.avatar_yaw;
         if let Some(mut o) = scene.try_object(AVATAR) {
-            o.set_position([yaw.sin() * back, y, yaw.cos() * back])
+            o.set_position([yaw.sin() * back, up - FEET_OFFSET, yaw.cos() * back])
                 .set_rotation([-tilt, yaw, 0.0]);
         }
     }
@@ -912,11 +915,11 @@ impl Local {
         } else if self.swing_left > 0.0 {
             "attack-melee-right"
         } else if in_water {
-            // No swim clip: `pose_avatar` lays the body down over these.
-            if moving {
-                "walk"
+            // `pose_avatar` lays the body down for "swim".
+            if pc.velocity[0].hypot(pc.velocity[2]) > swim::STROKE_SPEED && pc.dash_left <= 0.0 {
+                "swim"
             } else {
-                "idle"
+                "tread"
             }
         } else if !pc.grounded && pc.dash_left <= 0.0 {
             if pc.vertical_speed > 0.0 {

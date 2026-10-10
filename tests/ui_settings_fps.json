@@ -1,0 +1,17 @@
+{"name": "The FPS counter shows over the menu; Settings sets Max FPS to 60 and hides it; both are saved", "seed": 5, "ticks": 80, "steps": [
+  {"tick": 5, "expect": {"counter": "phase", "equals": 0}},
+  {"tick": 5, "within": 35, "expect": {"counter": "fps_shown", "equals": 1}},
+  {"tick": 36, "click": "Settings"},
+  {"tick": 37, "within": 40, "expect": {"counter": "ui_window", "equals": 9}},
+  {"tick": 42, "capture": "shots/ui_settings_fps.png"},
+  {"tick": 44, "click": "Unlimited"},
+  {"tick": 47, "capture": "shots/ui_settings_max_fps.png"},
+  {"tick": 48, "click": "60"},
+  {"tick": 52, "click": "Show FPS"},
+  {"tick": 56, "click": "Save"},
+  {"tick": 57, "within": 60, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 58, "within": 61, "expect": {"counter": "fps_shown", "equals": 0}},
+  {"tick": 62, "expect_file": {"path": "settings.json", "contains": "\"max_fps\": 60"}},
+  {"tick": 62, "expect_file": {"path": "settings.json", "contains": "\"show_fps\": false"}},
+  {"tick": 70, "capture": "shots/ui_menu_no_fps.png"}
+]}

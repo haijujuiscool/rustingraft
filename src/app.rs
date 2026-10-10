@@ -9,6 +9,7 @@ use crate::view::View;
 use raft_net::{Session, Status};
 use raft_sim::{Event, Request, World};
 use rusting_engine::prelude::GameScene;
+use rusting_engine::runtime::RuntimeInput;
 
 pub const TICK_DT: f32 = 1.0 / 60.0;
 
@@ -27,6 +28,10 @@ pub struct Game {
     notice: Option<String>,
     /// The scene controller's own look sensitivity, scaled by the setting.
     base_look: f32,
+    /// The controller's mouse look last frame, and whether focus loss or the Windows
+    /// key freed the cursor until a click (see `cursor`).
+    look: bool,
+    held_free: bool,
 }
 
 impl Game {
@@ -47,6 +52,8 @@ impl Game {
             ground: None,
             notice: None,
             base_look,
+            look: false,
+            held_free: false,
         };
         game.apply_settings(scene);
         game.local.clear(scene);
@@ -129,7 +136,7 @@ impl Game {
             });
             let modal = self.ui.modal();
             if let (Some(frame), AppPhase::Playing) = (&frame, self.phase) {
-                self.local.update(scene, frame, modal, &mut requests);
+                self.local.update(scene, frame, modal, self.held_free, &mut requests);
             } else {
                 scene.set_mouse_look(player::PLAYER, false);
                 if self.phase == AppPhase::GameOver {
@@ -152,6 +159,7 @@ impl Game {
             }
             actions
         };
+        self.cursor(scene);
         self.events.clear();
         if let Some(session) = self.session.as_mut() {
             for req in requests {
@@ -284,6 +292,23 @@ impl Game {
         scene.set_render_scale(s.render_scale);
         let look = self.base_look * s.mouse_sensitivity;
         scene.set_player(player::PLAYER, |pc| pc.look_sensitivity = look);
+        scene.set_max_fps((s.max_fps > 0).then_some(s.max_fps));
+    }
+
+    /// Every frame, after the player and the ui: grabs the cursor whenever mouse look is
+    /// on and no window is open, so closing a window or an Esc that opened nothing needs
+    /// no click (the engine frees it on any Esc and grabs it only on a left click). Test
+    /// counter `cursor_captured`: the state the last frame left, engine included.
+    fn cursor(&mut self, scene: &mut GameScene) {
+        let look = !self.ui.modal() && scene.player(player::PLAYER).is_some_and(|pc| pc.mouse_look);
+        let focused = scene.window_focused();
+        let windows_key = scene.keys_pressed().iter().any(|k| k == "SuperLeft" || k == "SuperRight");
+        let mut input = scene.world().resource_mut::<RuntimeInput>();
+        let grabbed = input.cursor_captured();
+        let (captured, held) = cursor_state(look, self.look, focused, windows_key, grabbed, self.held_free);
+        (self.look, self.held_free) = (look, held);
+        input.set_cursor_captured(captured);
+        scene.set_counter("cursor_captured", grabbed as i32);
     }
 
     /// Test hooks: world values as counters, every tick.
@@ -320,6 +345,21 @@ impl Game {
     }
 }
 
+/// This frame's grab and hold. Focus loss or the Windows key frees the cursor and holds
+/// it free, also once focus is back; the engine's grab on a left click (`grabbed` while
+/// held) or mouse look coming back on (a window closed) ends the hold.
+fn cursor_state(
+    look: bool,
+    was_look: bool,
+    focused: bool,
+    windows_key: bool,
+    grabbed: bool,
+    held: bool,
+) -> (bool, bool) {
+    let held = !focused || windows_key || (held && !grabbed && (!look || was_look));
+    (look && focused && !held, held)
+}
+
 /// A new world, or the saved one with its raw text for `Session::restore_owners`.
 fn pick_world(scene: &GameScene, load: bool) -> Result<(World, Option<String>), String> {
     if load {
@@ -336,5 +376,27 @@ fn new_seed(scene: &GameScene) -> u64 {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(1, |d| d.as_nanos() as u64),
         seed => seed,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cursor_state;
+
+    #[test]
+    fn cursor_follows_look_and_stays_free_after_focus_loss_until_a_click() {
+        // (look, was_look, focused, windows_key, grabbed, held) -> (captured, held)
+        // Look on: grabbed, also after an Esc that freed it but opened nothing.
+        assert_eq!(cursor_state(true, true, true, false, false, false), (true, false));
+        assert_eq!(cursor_state(false, true, true, false, true, false), (false, false));
+        // Alt-tab or the Windows key frees it and holds it free.
+        assert_eq!(cursor_state(true, true, false, false, true, false), (false, true));
+        assert_eq!(cursor_state(true, true, true, true, true, false), (false, true));
+        assert_eq!(cursor_state(true, true, true, false, false, true), (false, true));
+        // A left click (the engine grabbed it) or a closed window ends the hold.
+        assert_eq!(cursor_state(true, true, true, false, true, true), (true, false));
+        assert_eq!(cursor_state(true, false, true, false, false, true), (true, false));
+        // Not while unfocused.
+        assert_eq!(cursor_state(true, false, false, false, true, true), (false, true));
     }
 }

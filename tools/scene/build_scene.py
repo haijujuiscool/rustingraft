@@ -45,6 +45,10 @@ PI = math.pi
 HIDE_Y = -500.0
 DECK_Y = 0.45  # content.rs DECK_Y
 FIT_HUMAN = 1.8
+# Humans are this much narrower (X and Z) than the models; height is kept.
+SLIM = 0.87
+# The local player and every remote player body.
+PLAYER_MODEL = "character/kenney-mini/character-male-e.glb"
 
 # palette (linear-ish base colours)
 SAND = (0.86, 0.75, 0.52)
@@ -449,12 +453,145 @@ def model_height(rel):
     return info["max"][1] - info["min"][1]
 
 
-def human(rel, name, parent, pos, yaw=0.0, height=FIT_HUMAN, visible=True, autoplay="idle", tint=None):
+def human(rel, name, parent, pos, yaw=0.0, height=FIT_HUMAN, visible=True, autoplay="idle", tint=None,
+          swims=False):
     """Group `name` (forward -Z, feet at its origin) holding the model turned to face -Z; the
-    animation sits on the group so code plays clips on `name`."""
+    animation sits on the group so code plays clips on `name`. `swims` adds the hand-keyed
+    "swim" and "tread" clips (Kenney mini rig only)."""
     ent(name, parent, pos, (0, yaw, 0), visible=visible)
     s = height / model_height(rel)
-    return model(rel, f"{name}.model", name, (0, 0, 0), (0, PI, 0), s, host=name, autoplay=autoplay, tint=tint)
+    skinned = "/kenney-mini/" in rel
+    clips = model(rel, f"{name}.model", name, (0, 0, 0), (0, PI, 0), s if skinned else (s * SLIM, s, s * SLIM),
+                  host=name, autoplay=autoplay, tint=tint)
+    if skinned:
+        # Slim in bind space, before any bone turns: a scale on the model stays in world axes
+        # (a body laid down gets thin in height), and one on a bone shears the limbs under it.
+        for e in E.values():
+            skin = e.get("components", {}).get("rusting.skin")
+            if skin and e["name"].startswith(f"{name}.model."):
+                for m in skin["inverse_bind"]:
+                    m[0] = [c * SLIM for c in m[0]]
+                    m[2] = [c * SLIM for c in m[2]]
+    if swims:
+        anim = E[name]["components"]["rusting.animation"]
+        anim["clips"] += swim_clips(anim["clips"])
+        clips += ["swim", "tread"]
+    return clips
+
+
+# ---------------------------------------------------------------- swim clips
+# Kenney mini rig, model frame: +Y up, faces +Z, left arm at +X. Bones rest at identity with the
+# arms 45 deg out (the idle clip turns them down). Rx(phi) on a hanging arm points it at
+# (0, -cos phi, -sin phi): -90 forward, -180 overhead, +90 behind.
+
+def qmul(a, b):
+    ax, ay, az, aw = a
+    bx, by, bz, bw = b
+    return (aw * bx + ax * bw + ay * bz - az * by, aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw, aw * bw - ax * bx - ay * by - az * bz)
+
+
+def qrot(axis, a):
+    """Quaternion [x, y, z, w] turning `a` rad about axis 0 (X), 1 (Y) or 2 (Z)."""
+    q = [0.0, 0.0, 0.0, math.cos(a / 2)]
+    q[axis] = math.sin(a / 2)
+    return tuple(q)
+
+
+def arm(side, phi, out):
+    """Arm swung `phi` about X after being raised `out` rad sideways from hanging; side +1 left, -1 right."""
+    return qmul(qrot(0, phi), qrot(2, side * (out - PI / 4)))
+
+
+def vrot(q, v):
+    """Vector `v` turned by quaternion `q`."""
+    return qmul(qmul(q, (*v, 0.0)), (-q[0], -q[1], -q[2], q[3]))[:3]
+
+
+def swing(a, b):
+    """Shortest turn from unit vector `a` onto `b` (not opposite)."""
+    q = (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0],
+         1 + sum(x * y for x, y in zip(a, b)))
+    n = math.sqrt(sum(c * c for c in q))
+    return tuple(c / n for c in q)
+
+
+def stroke(side, phi, out):
+    """`arm` aimed the same way but with no twist about itself. A full turn about X ends on the
+    negated quaternion, and crossfades (raw lerp) between that and other clips spin or snap;
+    the shortest turn from rest comes back to the same key and stays within 90 deg of rest."""
+    rest = (side * math.sqrt(0.5), -math.sqrt(0.5), 0.0)
+    return swing(rest, vrot(arm(side, phi, out), rest))
+
+
+def rot_track(target, length, steps, f):
+    """Linear Orientation keys of f(u), u = 0..1 over `length` s. w stays <= 0 like the imported
+    clips (crossfades lerp raw components); where that flips sign the key is doubled, so no
+    step lerps between opposite quaternions."""
+    keys, prev = [], None
+    for i in range(steps + 1):
+        q = f(i / steps)
+        if q[3] > 0:
+            q = tuple(-c for c in q)
+        t = r4(length * i / steps)
+        if prev and sum(a * b for a, b in zip(prev, q)) < 0:
+            keys.append({"time": t, "value": vec([-c for c in q])})
+        keys.append({"time": t, "value": vec(q)})
+        prev = q
+    return {"interpolation": "Linear", "keys": keys, "property": "Orientation", "target": target}
+
+
+def swim_clips(clips):
+    """Looping "swim" (front crawl, 1.4 s) and "tread" (upright sculling, 1.6 s). Every bone gets
+    Position and Orientation keys, so a crossfade never leaves one stuck in the old clip. The
+    engine keeps a bone's last value when no clip keys it, so `clips` also get rest keys for the
+    bones they leave alone (else the swim roll and head tilt stay on after climbing out)."""
+    static = next(c for c in clips if c["name"] == "static")
+    bones = {}
+    for tr in static["tracks"]:
+        if tr["property"] != "Scale":
+            bones.setdefault(tr["target"].rsplit(".", 1)[-1], {})[tr["property"]] = tr
+    for c in clips:
+        keyed = {(tr["target"], tr["property"]) for tr in c["tracks"]}
+        c["tracks"] += [{"interpolation": "Linear", "keys": [{"time": 0.0, "value": tr["keys"][0]["value"]}],
+                         "property": tr["property"], "target": tr["target"]}
+                        for props in bones.values() for tr in props.values()
+                        if (tr["target"], tr["property"]) not in keyed]
+    deg = math.radians
+    wave = math.sin
+
+    def crawl(u):
+        phi = -PI + TAU * u  # left arm: overhead, pull under the chest, push to the hip, recover
+        out = lambda p: deg(12) + deg(38) * (1 - math.cos(p)) / 2 + deg(18) * max(0.0, math.sin(p))
+        roll = deg(18) * wave(phi)  # the pulling arm's shoulder dips
+        kick = deg(30) * wave(3 * TAU * u)
+        return {"root": qrot(1, roll), "torso": qrot(1, 0.0),
+                "head": qmul(qrot(0, deg(-30)), qrot(1, -0.6 * roll)),
+                "arm-left": stroke(1, phi, out(phi)), "arm-right": stroke(-1, phi + PI, out(phi + PI)),
+                "leg-left": qrot(0, kick), "leg-right": qrot(0, -kick)}
+
+    def tread(u):
+        a = TAU * u
+        out = lambda k: deg(42) + deg(24) * wave(2 * a + k)  # hands sweep out and in
+        legs = deg(-22) + deg(26) * wave(a)
+        return {"root": qrot(1, 0.0), "torso": qrot(0, deg(4) * wave(2 * a)),
+                "head": qrot(0, deg(-6) - deg(4) * wave(2 * a)),
+                "arm-left": arm(1, deg(-75) + deg(8) * wave(2 * a), out(0)),
+                "arm-right": arm(-1, deg(-75) + deg(8) * wave(2 * a), out(0)),
+                "leg-left": qrot(0, legs), "leg-right": qrot(0, deg(-44) - legs)}
+
+    out = []
+    for name, length, steps, f in (("swim", 1.4, 42, crawl), ("tread", 1.6, 32, tread)):
+        tracks = []
+        for bone, props in bones.items():
+            pos = props["Position"]["keys"][0]["value"]
+            tracks.append({"interpolation": "Linear", "keys": [{"time": 0.0, "value": pos},
+                                                              {"time": length, "value": pos}],
+                           "property": "Position", "target": props["Position"]["target"]})
+            tracks.append(rot_track(props["Orientation"]["target"], length, steps, lambda u, b=bone: f(u)[b]))
+        out.append({"name": name, "duration": 0.0, "repeat": "Loop", "blend": [], "blend_parameter": "",
+                    "blend_parameter_y": "", "events": [], "tracks": tracks})
+    return out
 
 
 # ---------------------------------------------------------------- content.rs
@@ -572,7 +709,7 @@ def build_player():
     ent("Game Camera", "Player", (0, 0.7, 0),
         camera={"projection": {"Perspective": {"vertical_fov_radians": 1.0471976, "near": 0.05, "far": 1500.0}},
                 "active": True, "priority": 10})
-    clips = human("character/kenney-mini/character-male-a.glb", "Player Avatar", "Player", (0, -0.9, 0))
+    clips = human(PLAYER_MODEL, "Player Avatar", "Player", (0, -0.9, 0), swims=True)
     collider("Spawn Platform", None, (0, DECK_Y - 0.1, 0), (4.0, 0.1, 4.0))
     note("Player and camera", "Player",
          "rusting.player_controller on a Kinematic capsule (half_height 0.6, radius 0.3, feet 0.9 below the "
@@ -586,7 +723,7 @@ def build_player():
          "set_player, plus set_visible(\"Player Avatar\", false); third person = 4.5 and visible again.")
     note("Player and camera", "Player Avatar",
          "Group at (0, -0.9, 0) under Player (feet), forward -Z; holds `Player Avatar.model` (Kenney mini "
-         f"male A, 1.8 m). Animation is on `Player Avatar`; clips: {', '.join(clips)}.")
+         f"male E, 1.8 m). Animation is on `Player Avatar`; clips: {', '.join(clips)}.")
     note("Player and camera", "Spawn Platform",
          "Invisible Fixed box, top at y 0.45, x/z in [-4, 4] (the 4x4 start raft). Holds the player up "
          "before the first raft tiles exist. Despawn it once raft tiles are spawned (the raft drifts away "
@@ -609,7 +746,7 @@ SAND_ROCKS = ["island/kenney-pirate/rocks-sand-a.glb", "island/kenney-pirate/roc
               "island/kenney-pirate/rocks-sand-c.glb"]
 BUSHES = ["island/kenney-nature/plant_bush.glb", "island/kenney-nature/plant_bushDetailed.glb",
           "island/kenney-nature/plant_bushLarge.glb"]
-SURVIVORS = ["character/kenney-mini/character-male-e.glb", "character/kenney-mini/character-female-e.glb",
+SURVIVORS = ["character/kenney-mini/character-male-b.glb", "character/kenney-mini/character-female-e.glb",
              "character/kenney-mini/character-male-f.glb", "character/kenney-mini/character-female-f.glb",
              "character/kenney-mini/character-male-d.glb", "character/kenney-mini/character-female-b.glb"]
 
@@ -1402,21 +1539,15 @@ def build_misc_templates():
                                                               speed=[2.0, 5.0], max_particles=60))
 
 
-AVATARS = ["character/kenney-mini/character-female-a.glb", "character/kenney-mini/character-male-b.glb",
-           "character/kenney-mini/character-female-b.glb", "character/kenney-mini/character-male-c.glb",
-           "character/kenney-mini/character-female-c.glb", "character/kenney-mini/character-male-d.glb",
-           "character/kenney-mini/character-female-d.glb"]
-
-
 def build_avatars():
     tpl("tpl.avatar", "")
-    clips = human("character/kenney-mini/character-male-a.glb", "tpl.avatar.body", "tpl.avatar", (0, 0, 0))
+    clips = human(PLAYER_MODEL, "tpl.avatar.body", "tpl.avatar", (0, 0, 0), swims=True)
     TPL_DOCS[-1] = ("tpl.avatar", "Remote player body (1.8 m, feet at the origin, forward -Z). Copies lose "
                                   "animation; prefer the pool. Clips (on `tpl.avatar.body`): " + ", ".join(clips))
-    for i, rel in enumerate(AVATARS, 1):
-        human(rel, f"pool.avatar.{i}", None, (3.0 * i, HIDE_Y, 0), 0.0, visible=False)
+    for i in range(1, 8):
+        human(PLAYER_MODEL, f"pool.avatar.{i}", None, (3.0 * i, HIDE_Y, 0), 0.0, visible=False, swims=True)
     note("Pools", "pool.avatar.1 .. pool.avatar.7",
-         "Pre-placed hidden remote-player bodies (different Kenney mini skins), feet at the origin, forward -Z, "
+         "Pre-placed hidden remote-player bodies (Kenney mini male E, like the player), feet at the origin, forward -Z, "
          "animation on the pool object itself (autoplay idle; same clips as Player Avatar). Assign one per "
          "remote player: set_position/set_rotation + set_visible + play_animation/crossfade. Named pool.* so "
          "they never clash with the view's `avatar.<player id>` copies.")
@@ -1612,6 +1743,15 @@ def capture(views):
     for e in ents:
         if e["name"].endswith((".survivor", ".glow", ".light", ".lamp", ".lamp_glow", ".beacon_core")) and                 not e["name"].startswith(("tpl.", "pool.")):
             e["visible"] = None
+    # a swimmer and a treader off the start raft, posed like src/player/swim.rs (lean, rise; feet 1.2 m deep)
+    for n, clip, x, tilt, lift in (("pool.avatar.3", "swim", 20.0, 1.35, 0.25), ("pool.avatar.4", "tread", 23.0, 0, 0.45)):
+        e = byname[n]
+        e["transform"]["position"] = vec((x - 0.9 * math.sin(tilt), -1.2 + 0.9 * (1 - math.cos(tilt)) + lift, 10))
+        e["transform"]["rotation"] = vec((-tilt, -PI / 2, 0))
+        e["visible"] = None
+        a = json.loads(e["components"]["rusting.animation"])
+        a["autoplay"] = clip
+        e["components"]["rusting.animation"] = json.dumps(a)
     apply(CAPTURE / "extra.rscene", fix_paths(extra, CAP_PREFIX), "Capture Extra",
           CAPTURE / "extra.patch.json")
     extra_eng = json.loads((CAPTURE / "extra.rscene").read_text(encoding="utf-8"))["entities"]
@@ -1658,6 +1798,8 @@ def capture(views):
         "wreck_close": (f"{1150 + 10},{8},{-600 - 4}", f"{1150},{2},{-600 - 16.5}"),
         "freighter": (f"{1150 + 75},{14},{-600 - 75}", f"{1150 + 36},{3},{-600 - 33}"),
         "barnaby": ("6,2.5,-27", "2,1.5,-31"),
+        "swim_side": ("21.5,0.8,15", "21.5,0,10"),
+        "swim_back": ("15.5,1.6,10.8", "20,0,10"),
         "rig_deck": (f"{300 + 26},{15},{1950 + 22}", f"{300},{8},{1950}"),
     }
     # template close-ups: consecutive lineup items in groups about 9 m wide

@@ -9,7 +9,7 @@ Scene objects: 1527.
 
 - `Player`: rusting.player_controller on a Kinematic capsule (half_height 0.6, radius 0.3, feet 0.9 below the origin). Spawn (0, 1.36, 0) on the deck. walk_speed 4.5, sprint_multiplier 1.5556 (= 7 m/s, held `player.sprint`), jump_speed 5 (~1.3 m), max_step_height 0.35, turn_speed 10 (turns `Player Avatar` to the walk direction). yaw 0 looks toward -Z (Hook Isle).
 - `Game Camera`: Active camera, child of Player at (0, 0.7, 0), fov 60 deg, far 1500. Third person by default (camera_distance 4.5, camera_height 0.6). First/third-person toggle (action `camera`, V) is code: first person = `/components/rusting.player_controller/camera_distance` 0 via set_field or set_player, plus set_visible("Player Avatar", false); third person = 4.5 and visible again.
-- `Player Avatar`: Group at (0, -0.9, 0) under Player (feet), forward -Z; holds `Player Avatar.model` (Kenney mini male A, 1.8 m). Animation is on `Player Avatar`; clips: static, idle, walk, sprint, jump, fall, crouch, sit, drive, die, pick-up, emote-yes, emote-no, holding-right, holding-left, holding-both, holding-right-shoot, holding-left-shoot, holding-both-shoot, attack-melee-right, attack-melee-left, attack-kick-right, attack-kick-left, interact-right, interact-left.
+- `Player Avatar`: Group at (0, -0.9, 0) under Player (feet), forward -Z; holds `Player Avatar.model` (Kenney mini male E, 1.8 m). Animation is on `Player Avatar`; clips: static, idle, walk, sprint, jump, fall, crouch, sit, drive, die, pick-up, emote-yes, emote-no, holding-right, holding-left, holding-both, holding-right-shoot, holding-left-shoot, holding-both-shoot, attack-melee-right, attack-melee-left, attack-kick-right, attack-kick-left, interact-right, interact-left, swim, tread.
 - `Spawn Platform`: Invisible Fixed box, top at y 0.45, x/z in [-4, 4] (the 4x4 start raft). Holds the player up before the first raft tiles exist. Despawn it once raft tiles are spawned (the raft drifts away from it).
 
 ## Input actions
@@ -147,11 +147,11 @@ All templates are hidden roots at y -500 with identity rotation and scale 1 (cop
 | `tpl.fx.splash` | [0.0, 0.0, 0.0] .. [0.0, 0.0, 0.0] | Water splash burst (one shot, plays when spawned; `trigger` replays). |
 | `tpl.fx.campfire` | [0.0, 0.0, 0.0] .. [0.0, 0.0, 0.0] | Lit campfire: fire, embers and smoke emitters, plus point light `tpl.fx.campfire.light` (flicker it with set_light). Place at campfire (0, 0.15, 0). |
 | `tpl.fx.hit` | [0.0, 0.0, 0.0] .. [0.0, 0.0, 0.0] | Hit sparks burst (one shot, plays when spawned; `trigger` replays). |
-| `tpl.avatar` | [-1.0301, 0.0, -0.4561] .. [1.0301, 1.8, 0.456] | Remote player body (1.8 m, feet at the origin, forward -Z). Copies lose animation; prefer the pool. Clips (on `tpl.avatar.body`): static, idle, walk, sprint, jump, fall, crouch, sit, drive, die, pick-up, emote-yes, emote-no, holding-right, holding-left, holding-both, holding-right-shoot, holding-left-shoot, holding-both-shoot, attack-melee-right, attack-melee-left, attack-kick-right, attack-kick-left, interact-right, interact-left |
+| `tpl.avatar` | [-1.0225, 0.0, -0.4554] .. [1.0225, 1.8, 0.4553] | Remote player body (1.8 m, feet at the origin, forward -Z). Copies lose animation; prefer the pool. Clips (on `tpl.avatar.body`): static, idle, walk, sprint, jump, fall, crouch, sit, drive, die, pick-up, emote-yes, emote-no, holding-right, holding-left, holding-both, holding-right-shoot, holding-left-shoot, holding-both-shoot, attack-melee-right, attack-melee-left, attack-kick-right, attack-kick-left, interact-right, interact-left, swim, tread |
 
 ## Pools
 
-- `pool.avatar.1 .. pool.avatar.7`: Pre-placed hidden remote-player bodies (different Kenney mini skins), feet at the origin, forward -Z, animation on the pool object itself (autoplay idle; same clips as Player Avatar). Assign one per remote player: set_position/set_rotation + set_visible + play_animation/crossfade. Named pool.* so they never clash with the view's `avatar.<player id>` copies.
+- `pool.avatar.1 .. pool.avatar.7`: Pre-placed hidden remote-player bodies (Kenney mini male E, like the player), feet at the origin, forward -Z, animation on the pool object itself (autoplay idle; same clips as Player Avatar). Assign one per remote player: set_position/set_rotation + set_visible + play_animation/crossfade. Named pool.* so they never clash with the view's `avatar.<player id>` copies.
 
 ## Notes for game code
 

@@ -147,6 +147,10 @@ pub struct Settings {
     /// Multiplier on the controller's base look sensitivity.
     pub mouse_sensitivity: f32,
     pub render_scale: f32,
+    /// Frame rate cap; 0 is unlimited (the engine default).
+    pub max_fps: u32,
+    /// The FPS counter in the bottom-right corner.
+    pub show_fps: bool,
     /// This install's identity for `Session::join`; `save::load_settings` makes one.
     pub token: String,
 }
@@ -159,7 +163,21 @@ impl Default for Settings {
             volume: 1.0,
             mouse_sensitivity: 1.0,
             render_scale: 1.0,
+            max_fps: 0,
+            show_fps: true,
             token: String::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Settings;
+
+    #[test]
+    fn old_settings_load_with_fps_defaults() {
+        let old = r#"{"relay": "1.2.3.4:5", "name": "Ann", "volume": 0.5, "token": "t"}"#;
+        let s: Settings = rusting_engine::serde_json::from_str(old).unwrap();
+        assert_eq!((s.name.as_str(), s.max_fps, s.show_fps), ("Ann", 0, true));
     }
 }

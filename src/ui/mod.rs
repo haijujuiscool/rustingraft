@@ -2,13 +2,15 @@
 //! objects (that is `view` and `player`).
 //!
 //! - `menu`: main menu, connecting, pause, settings, leave/quit confirmation, game over.
-//! - `hud`: vitals, hotbar, compass, clock, prompts, toasts, fishing bar, build hints.
+//! - `hud`: vitals, hotbar, compass, clock, prompts, toasts, fishing bar, build hints,
+//!   FPS counter (also over menus).
 //! - `windows`: sac, workbench, campfire, logbook, Barnaby, trader, radio.
 //!
 //! Test hooks (counters): set `ui_open` to 1..=6 to open a `Window` (Workbench,
 //! Campfire, Logbook, Fisherman, Trader, Radio in that order), 7 for the sac, 8 for
 //! the pause menu. `ui_window` reads what is open: 0 nothing, 1..=6 a `Window`, 7 sac,
-//! 8 pause menu, 9 settings, 10 leave/quit confirmation. `ui_force_game_over` 1 (in
+//! 8 pause menu, 9 settings, 10 leave/quit confirmation. `fps_shown` is 1 while the FPS
+//! counter is on. `ui_force_game_over` 1 (in
 //! app.rs) shows the game over screen. tests/fixtures/ui_world.json fills every window;
 //! `windows::tests::write_ui_world` writes it.
 
@@ -19,6 +21,7 @@ mod windows;
 
 use crate::shared::{AppPhase, Settings, UiAction, UiState, Window};
 use rusting_engine::prelude::GameScene;
+use std::time::Instant;
 
 const TOAST_SECONDS: f32 = 4.0;
 const MAX_TOASTS: usize = 5;
@@ -84,6 +87,8 @@ pub struct Ui {
     scale: f32,
     phase: Option<AppPhase>,
     keys: Option<Keys>,
+    fps: hud::Fps,
+    last_frame: Option<Instant>,
 }
 
 impl Ui {
@@ -134,6 +139,15 @@ impl Ui {
             AppPhase::GameOver => self.game_over(&ctx, state, &mut out),
         }
         self.settings_window(&ctx, state, &mut out);
+        // Wall time: the engine's `real_delta` is clamped to one step while it is overloaded.
+        let now = Instant::now();
+        let real_dt = self.last_frame.map_or(0.0, |t| (now - t).as_secs_f32());
+        self.last_frame = Some(now);
+        let fps = self.fps.tick(real_dt);
+        if state.settings.show_fps {
+            hud::fps_counter(&ctx, s, fps);
+        }
+        scene.set_counter("fps_shown", state.settings.show_fps as i32);
         scene.set_counter("ui_window", self.window_code());
         out
     }
