@@ -1219,6 +1219,43 @@
       "spot_light": null
     },
     {
+      "id": "bdb129b3-e66e-5e89-af3b-caee58c0f075",
+      "parent": null,
+      "name": "input.stash",
+      "classes": [],
+      "transform": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "mesh_renderer": null,
+      "camera": null,
+      "visible": null,
+      "physics_body": null,
+      "rigid_body": null,
+      "collider": null,
+      "collision_layers": null,
+      "gpu_physics_watch": null,
+      "components": {
+        "rusting.input_action": "{\"action\":\"stash\",\"inputs\":[\"KeyF\"]}"
+      },
+      "directional_light": null,
+      "point_light": null,
+      "spot_light": null
+    },
+    {
       "id": "fe2e56bb-f928-597c-91c6-677d53e60add",
       "parent": null,
       "name": "input.slot1",

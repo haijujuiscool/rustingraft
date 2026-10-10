@@ -65,13 +65,23 @@ fn grapple() -> World {
     w
 }
 
-fn all() -> [(&'static str, World); 5] {
+/// On the deck facing a clear row (-Z), 3 bait then 2 planks in the sac: F drops a plank.
+fn stash() -> World {
+    let mut w = World::new(7);
+    let p = sailor(&mut w, V3::new(-1.0, DECK_Y, 1.5), 0.0);
+    p.sac.add(ItemKind::Bait, 3);
+    p.sac.add(ItemKind::Plank, 2);
+    w
+}
+
+fn all() -> [(&'static str, World); 6] {
     [
         ("player_world", world()),
         ("player_melee", melee()),
         ("player_eat_heal", eat_heal()),
         ("player_boat", boat()),
         ("player_grapple", grapple()),
+        ("player_stash", stash()),
     ]
 }
 

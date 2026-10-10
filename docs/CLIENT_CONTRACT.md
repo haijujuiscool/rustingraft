@@ -95,7 +95,10 @@ to that module.
 
 - player: push onto `out` in `Local::update`, e.g. `Request::PickUpDebris(id)`. The
   skeleton already sends `PlayerTransform { pos (feet), yaw, in_water, sprinting }` at
-  20 Hz and the E interact for debris, campfire, shredder and logbook.
+  20 Hz and the E interact for floating debris, campfire, shredder and logbook. F
+  (`stash`) sends `PickUpDebris` for the world item on the aim ray, else `DropLast`
+  (newest sac kind out; it rests on the deck or ground, `Debris::resting`, at most
+  `debris::MAX_RESTING`, or floats). Resting items are F's only, never E's.
 - ui: return `UiAction::Request(req)` from `Ui::draw` (craft, eat, equip, buy, ...).
 - Results come back as events: show `Event::Denied` / `Event::Toast` (ui does) instead
   of predicting the outcome. Clients mirror their own requests locally right away.
@@ -107,7 +110,7 @@ to that module.
 - Counters mirrored every tick: `phase` (0 menu, 1 connecting, 2 playing, 3 game over),
   `day`, `time` (seconds into the cycle), `coins`, `hp`, `hunger`, `wood`, `metal`,
   `biomass`, `oil`, `campfire_level`, `fuel` (seconds), `raft_tiles`, `debris`,
-  `enemies`. Add more in `Game::mirror_counters` with the module prefix
+  `world_items_resting` (dropped items lying on the deck or ground), `enemies`. Add more in `Game::mirror_counters` with the module prefix
   (`view_avatars`, `player_swimming`). Counters are `i32`.
 - Saves: each scenario starts with an empty user data folder; seed one with the
   scenario's top-level `files`, check one with `expect_file` (`world.json`).
@@ -125,7 +128,7 @@ to that module.
   `raft.railing.<i>.<j>.<Side>`; new groups follow suit (`debris.<id>`, `enemy.<id>`,
   `boat.<id>`, `avatar.<player id>`). The view owns every name it spawns.
 - Input actions (scene): `use`, `aim`, `camera`, `sac`, `build`, `rotate`, `pause`,
-  `interact`, `slot1`..`slot6`; movement is the built-in `player.*` set.
+  `interact`, `stash`, `slot1`..`slot6`; movement is the built-in `player.*` set.
 - Labels that scenarios click (`New world`, `Load world`, `Host online`, `Join online`,
   `Load last save`, `Main menu`, `Quit`) stay unique and unchanged.
 

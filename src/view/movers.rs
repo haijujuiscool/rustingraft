@@ -130,9 +130,13 @@ impl Movers {
         }
 
         for (id, d) in &w.dynamic.debris {
-            let tpls = [format!("tpl.{}", variant(&format!("{:?}", d.kind)))];
+            let tpls = [item_template(d.kind)];
             let yaw = unit(hash(*id as i32, 17)) * 3.1;
-            let target = Target { pos: d.pos, yaw, float: Some(0.0), ..Target::default() };
+            let (up, pitch) = rest_pose(d.kind);
+            // Resting items lie still on the deck or ground instead of riding the waves.
+            let (float, up) = if d.resting { (None, up) } else { (Some(0.0), 0.0) };
+            let pose = Pose { up, pitch, ..Pose::default() };
+            let target = Target { pos: d.pos, yaw, float, pose, ..Target::default() };
             self.model(scene, &format!("debris.{id}"), &tpls, Some(debris_block(d.kind)), target, t, dt);
         }
         for (id, e) in &w.dynamic.enemies {
@@ -736,6 +740,38 @@ fn enemy_pose(id: i32, e: &Enemy, t: f64) -> Pose {
 
 fn ease_angle(from: f32, to: f32, k: f32) -> f32 {
     wrap_angle(from + wrap_angle(to - from) * k)
+}
+
+/// A world item's model: its debris template, or the hand model of an item that only
+/// leaves the sac by F (Bait has none and shows its block).
+fn item_template(kind: ItemKind) -> String {
+    match kind {
+        ItemKind::Fish(_) | ItemKind::CookedFish(_) => "tpl.held.fish".into(),
+        ItemKind::Bandage => "tpl.held.bandage".into(),
+        ItemKind::BiomassSalve => "tpl.held.salve".into(),
+        ItemKind::Flare => "tpl.held.flare".into(),
+        _ => format!("tpl.{}", variant(&format!("{kind:?}"))),
+    }
+}
+
+/// A resting item's lift above its support and the pitch that lays it down. The lift is
+/// the model's lowest point (bounds in docs/scene-names.md): debris templates have their
+/// origin at the water line, hand models and blocks at their centre.
+fn rest_pose(kind: ItemKind) -> (f32, f32) {
+    match kind {
+        ItemKind::Plank => (0.12, 0.0),
+        ItemKind::PalmBundle | ItemKind::ReefCrabCarcass => (0.15, 0.0),
+        ItemKind::ScrapChunk => (0.08, 0.0),
+        ItemKind::FloatingCrate => (0.3, 0.0),
+        ItemKind::OilBarrel => (0.27, 0.0),
+        ItemKind::CrawlerCarcass => (0.03, 0.0),
+        ItemKind::GloomfinCarcass | ItemKind::BruteCarcass => (0.05, 0.0),
+        // The hand fish stands on its tail: pitch it back onto its belly.
+        ItemKind::Fish(_) | ItemKind::CookedFish(_) => (0.145, FRAC_PI_2),
+        ItemKind::Bandage | ItemKind::BiomassSalve => (0.12, 0.0),
+        ItemKind::Flare => (0.064, 0.0),
+        k => (debris_block(k).size[1] / 2.0, 0.0),
+    }
 }
 
 fn debris_block(kind: ItemKind) -> Block {

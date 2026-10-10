@@ -99,6 +99,8 @@ pub struct LocalHud {
     /// object, B near the workbench); `ui` opens it. Tab (sac) and Esc (pause) are
     /// read by `ui` itself.
     pub open: Option<Window>,
+    /// Second prompt under `prompt`: "F  Put Plank in sac" or "F  Take out Bait".
+    pub stash_prompt: Option<String>,
 }
 
 /// Windows `ui` shows on `LocalHud.open`.

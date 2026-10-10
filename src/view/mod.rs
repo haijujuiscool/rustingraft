@@ -559,6 +559,7 @@ mod tests {
         want.extend(["tpl.wood_farm.grow", "tpl.metal_farm.grow", "tpl.oil_farm.grow", "tpl.shredder.cog"].map(String::from));
         let debris = ItemKind::all().into_iter().filter(|k| k.class() == ItemClass::Debris);
         want.extend(debris.map(|k| format!("tpl.{}", super::variant(&format!("{k:?}")))));
+        want.extend(["tpl.held.fish", "tpl.held.bandage", "tpl.held.salve", "tpl.held.flare"].map(String::from));
         use EnemyKind::*;
         let enemies = [Gloomfin, Crawler, ReefCrab, RigBrute, Leviathan];
         want.extend(enemies.map(|k| format!("tpl.enemy.{}", super::variant(&format!("{k:?}")))));

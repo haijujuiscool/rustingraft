@@ -689,7 +689,8 @@ def build_look():
 
 
 INPUTS = [("interact", ["KeyE"]), ("use", ["MouseLeft"]), ("aim", ["MouseRight"]), ("camera", ["KeyV"]),
-          ("sac", ["Tab"]), ("build", ["KeyB"]), ("rotate", ["KeyR"]), ("pause", ["Escape"])] + \
+          ("sac", ["Tab"]), ("build", ["KeyB"]), ("rotate", ["KeyR"]), ("pause", ["Escape"]),
+          ("stash", ["KeyF"])] + \
          [(f"slot{i}", [f"Digit{i}"]) for i in range(1, 7)]
 
 

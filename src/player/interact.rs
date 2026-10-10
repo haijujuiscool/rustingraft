@@ -1,4 +1,5 @@
-//! What E acts on: the nearest thing in reach, with its prompt.
+//! What E acts on: the nearest thing in reach, with its prompt. Resting world items are
+//! left to F, so an item set down by a station never takes E from it.
 
 use crate::shared::{Frame, Window};
 use raft_sim::content::{
@@ -41,7 +42,7 @@ pub fn target(frame: &Frame, feet: V3) -> Option<Target> {
         }
     };
 
-    for (id, d) in &w.dynamic.debris {
+    for (id, d) in w.dynamic.debris.iter().filter(|(_, d)| !d.resting) {
         let text = format!("Pick up {}", d.kind.name());
         offer(d.pos.dist_xz(feet), DEBRIS_PICKUP_RANGE, text, Act::Req(Request::PickUpDebris(*id)));
     }
@@ -112,4 +113,25 @@ pub fn target(frame: &Frame, feet: V3) -> Option<Target> {
         }
     }
     best.map(|(_, t)| t)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use raft_sim::World;
+
+    #[test]
+    fn resting_items_are_left_to_f() {
+        let mut w = World::new(1);
+        let me = w.join("Ana").unwrap();
+        let feet = V3::xz(60.0, 0.0);
+        let id = w.spawn_debris(raft_sim::content::ItemKind::Plank, feet);
+        let pick = |w: &World| {
+            let frame = Frame { world: w, me, events: &[], dt: 0.0, is_host: true, room_code: None, peers: 0 };
+            target(&frame, feet).map(|t| t.act)
+        };
+        assert_eq!(pick(&w), Some(Act::Req(Request::PickUpDebris(id))));
+        w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        assert_eq!(pick(&w), None);
+    }
 }

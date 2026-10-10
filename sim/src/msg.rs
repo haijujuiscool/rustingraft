@@ -56,6 +56,9 @@ pub enum Request {
     /// Start holding E on a downed player (progress ticks in `players::step`).
     StartRevive(PlayerId),
     StopRevive,
+    /// F looking at nothing: one item of the kind that entered the sac last
+    /// (`Sac::last_out`, never Quest items) drops DROP_AHEAD in front of the player.
+    DropLast,
     // append players
 
     // ---- debris.rs

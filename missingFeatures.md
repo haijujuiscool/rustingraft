@@ -10,7 +10,7 @@ workaround can go once the engine has the feature.
 
 `CpuPhysics::raycast_where` (`src/runtime/cpu_physics.rs:694`) tests every collider for
 every ray. The world has about 1,500 objects, and the game samples island heights with
-about 15,000 downward rays: done in one go it froze the game for over 5 seconds, long
+about 21,000 downward rays: done in one go it froze the game for over 5 seconds, long
 enough to time out an online connect.
 
 - Instead: `src/ground.rs` samples a few rows per main-menu tick and finishes the rest

@@ -72,10 +72,11 @@ impl Ui {
             if hud.aiming {
                 crosshair(&p, s, screen.center());
             }
-            if let Some(prompt) = &hud.prompt {
-                // 60% down: below the crosshair, clear of the third-person avatar's head.
-                let at = Pos2::new(screen.center().x, screen.top() + screen.height() * 0.6);
+            // 60% down: below the crosshair, clear of the third-person avatar's head.
+            let mut at = Pos2::new(screen.center().x, screen.top() + screen.height() * 0.6);
+            for prompt in [&hud.prompt, &hud.stash_prompt].into_iter().flatten() {
                 prompt_chip(&p, s, at, prompt);
+                at.y += 44.0 * s;
             }
         }
     }

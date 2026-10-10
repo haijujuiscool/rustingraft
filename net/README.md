@@ -7,7 +7,7 @@ engine dependency.
 ## API
 
 ```rust
-pub const PROTOCOL_VERSION: u32; // 3
+pub const PROTOCOL_VERSION: u32; // 4
 pub fn new_token() -> String;      // 128 random bits as 32 hex digits
 pub enum Status { Connecting, Playing, Closed(String) }
 

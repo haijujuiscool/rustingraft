@@ -69,6 +69,9 @@ pub struct DebrisPose {
     pub id: EntityId,
     pub kind: ItemKind,
     pub pos: [i32; 3],
+    /// `Debris::resting`: the view draws it lying still instead of bobbing.
+    #[serde(default)]
+    pub resting: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -246,6 +249,7 @@ impl World {
                     id: *id,
                     kind: x.kind,
                     pos: qpos(x.pos),
+                    resting: x.resting,
                 })
                 .collect(),
             enemies: d
@@ -294,10 +298,14 @@ impl World {
             &mut d.debris,
             &s.debris,
             |x| x.id,
-            |x| Debris::new(x.kind, dpos(x.pos), now),
+            |x| Debris {
+                resting: x.resting,
+                ..Debris::new(x.kind, dpos(x.pos), now)
+            },
             |o, x| {
                 o.kind = x.kind;
                 o.pos = dpos(x.pos);
+                o.resting = x.resting;
             },
         );
         sync(

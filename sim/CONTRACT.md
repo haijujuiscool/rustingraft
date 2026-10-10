@@ -18,7 +18,7 @@ cargo clippy -p raft_sim --manifest-path C:\Users\juliu\RustingRaft\Cargo.toml -
 | `math.rs` | core (done) | `V3`, `facing(yaw)`, `yaw_toward`, `wrap_angle`, `turn_toward` |
 | `rng.rs` | core (done) | `Rng` (SplitMix64; state is saved with the world) |
 | `content.rs` | core (done), balance edits by anyone | every table and tuning number |
-| `inventory.rs` | core (done) | `Stack`, `Sac` (all-or-nothing add/remove), `exchange` |
+| `inventory.rs` | core (done) | `Stack`, `Sac` (all-or-nothing add/remove, `last_out` order), `exchange` |
 | `msg.rs` | shared, append-only | `Request`, `Event`, `SoundKind`, `Target`, `Hand`, `deny/toast/sound` |
 | `world.rs` | coordinator | `World`, `Dynamic`, `Ground`, mocks, join/leave, step/apply dispatch, helpers |
 | `replicate.rs` | core (done) | sections, roster, `DynamicSnapshot`, JSON |
@@ -27,7 +27,7 @@ cargo clippy -p raft_sim --manifest-path C:\Users\juliu\RustingRaft\Cargo.toml -
 | `save.rs` | core (done) | `SaveWorld` |
 | `players.rs` | players agent | `Player`, `Gear`, `Seat`; hunger, downed/revive, hands, flares, cooking |
 | `economy.rs` | economy agent | `Economy`, `Campfire`, `Shredder`; shredder, campfire, crafting, placing, farms |
-| `debris.rs` | debris agent | `Debris`, `DebrisSpawn`; spawning, drift, pickup, harpoon drag |
+| `debris.rs` | debris agent | `Debris`, `DebrisSpawn`; spawning, drift, resting items, pickup, harpoon drag |
 | `enemies.rs` | enemies agent | `Enemy`, `EnemyHome`, `EnemyState`, `EnemySpawn`; spawns, AI, combat |
 | `fishing.rs` | fishing agent | `Fishing`; cast, bite, reel |
 | `islands.rs` | islands agent | `Islands`, `IslandState`, `Quests`, `QuestStatus`; discovery, chests, shrines, generator, beacon, quests |
@@ -104,8 +104,10 @@ Rules for every handler:
 - `World::give(pid, goods, ev)` / `give_all(pid, &[goods], ev)`: all or nothing; returns
   false (nothing changed) if items do not fit. Sac upgrades in the list apply first.
   Coins, stockpile, gear tiers (never lowered), barbed tip, lucky lure. Emits `Gained`.
-- `World::spawn_debris(kind, pos)`, `spawn_enemy(kind, pos, home, ev)` (emits
-  `EnemySpawned`), `spawn_boat(kind, pos)`, `alloc_id()`.
+- `World::spawn_debris(kind, pos)` (floating; set `Debris::resting` for an item lying on
+  the deck or ground, see `debris::rest_y`; keep them under `debris::MAX_RESTING`),
+  `spawn_enemy(kind, pos, home, ev)` (emits `EnemySpawned`), `spawn_boat(kind, pos)`,
+  `alloc_id()`.
 - `World::player(_mut)`, `connected()`, `player_pos`, `structure_pos`, `campfire_pos`,
   `in_campfire_light`, `in_flare_light`, `in_light`.
 - `msg::{deny, toast, sound}`.

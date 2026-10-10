@@ -9,6 +9,9 @@ const STEP: f32 = 2.0;
 const TOP: f32 = 200.0;
 /// Non-ground colliders (trees, crates) a ray may pass before giving up.
 const MAX_PASSES: usize = 4;
+/// Grids reach this far past an island's radius: walkable colliders do too (Hook Isle's
+/// dock, wide domes).
+const MARGIN: f32 = 10.0;
 
 /// One height grid per island. The main menu samples it a little per tick;
 /// `finish` samples the rest before a session starts.
@@ -30,10 +33,11 @@ impl SceneGround {
         let islands = ISLANDS
             .iter()
             .map(|island| {
-                let cols = (2.0 * island.radius / STEP).ceil() as usize + 1;
+                let r = island.radius + MARGIN;
+                let cols = (2.0 * r / STEP).ceil() as usize + 1;
                 Grid {
-                    min_x: island.x - island.radius,
-                    min_z: island.z - island.radius,
+                    min_x: island.x - r,
+                    min_z: island.z - r,
                     cols,
                     heights: Vec::with_capacity(cols * cols),
                 }
@@ -45,7 +49,7 @@ impl SceneGround {
         }
     }
 
-    /// Samples rows until `budget` has passed; ~15k rays in all, each scans
+    /// Samples rows until `budget` has passed; ~21k rays in all, each scans
     /// every collider, which takes seconds.
     pub fn sample_for(&mut self, scene: &GameScene, budget: std::time::Duration) {
         let start = std::time::Instant::now();

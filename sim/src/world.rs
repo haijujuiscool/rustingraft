@@ -220,7 +220,8 @@ impl World {
             | R::UseFlare { .. }
             | R::Cook { .. }
             | R::StartRevive(_)
-            | R::StopRevive => players::handle(self, pid, req, g, ev_),
+            | R::StopRevive
+            | R::DropLast => players::handle(self, pid, req, g, ev_),
             R::PickUpDebris(_) | R::HarpoonDebris(_) => debris::handle(self, pid, req, g, ev_),
             R::HarpoonEnemy(_) | R::MeleeHit(_) => enemies::handle(self, pid, req, g, ev_),
             R::CastLine { .. } | R::ReelIn { .. } | R::CancelFishing => {

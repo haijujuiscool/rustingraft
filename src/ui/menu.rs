@@ -133,13 +133,14 @@ impl Ui {
                  Lighthouse Atoll.",
             );
             ui.add_space(4.0 * s);
-            let rows: [(&str, &str); 12] = [
+            let rows: [(&str, &str); 13] = [
                 ("W A S D", "Move, Shift to sprint"),
                 ("Space", "Jump, swim up"),
                 (&keys.use_tool, "Use the tool in your hand"),
                 (&keys.aim, "Aim harpoon or rod"),
                 ("1 - 6", "Hotbar slot"),
                 (&keys.interact, "Interact, pick up"),
+                (&keys.stash, "Item you look at into the sac, or last one out"),
                 (&keys.sac, "Open your sac"),
                 (&keys.build, "Build menu at the workbench"),
                 (&keys.rotate, "Rotate while placing"),

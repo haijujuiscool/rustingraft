@@ -8,7 +8,11 @@
 //! (0 none, 1 invalid, 2 valid), `player_dragging` (debris pulled by me),
 //! `player_shots`, `player_casts`, `player_place_requests`, `player_boat`,
 //! `player_grapple_gap` (cm from the body to the grapple target when the last pull
-//! ended, -1 before one).
+//! ended, -1 before one), `player_sac_items` (items in my sac, hands not counted).
+//!
+//! F (`stash`): the world item on the aim ray (`look_item`) goes into the sac
+//! (PickUpDebris); looking at none, DropLast takes the newest kind out. The F prompt
+//! shows "Put" on an item, "Take out" only with hotbar slot 2 (the sac) selected.
 
 mod boat;
 mod build;
@@ -23,8 +27,9 @@ use boat::Drive;
 use interact::Act;
 use raft_sim::boats::seat_pos;
 use raft_sim::content::{
-    harpoon, ItemKind, PlaceableKind, RecipeId, CAST_RANGE, DECK_Y, GRAPPLE_SPEED, MELEE_RANGE,
-    MELEE_SWING, PLACE_RANGE, REVIVE_SECONDS, SWIM_FAST_SPEED, SWIM_SPEED,
+    harpoon, ItemClass, ItemKind, PlaceableKind, RecipeId, CAST_RANGE, DEBRIS_PICKUP_RANGE, DECK_Y,
+    GRAPPLE_SPEED, MELEE_RANGE, MELEE_SWING, PLACE_RANGE, REVIVE_SECONDS, SWIM_FAST_SPEED,
+    SWIM_SPEED,
 };
 use raft_sim::debris::wave;
 use raft_sim::math::facing;
@@ -64,6 +69,8 @@ const BOLT_RETURN: f32 = 0.25;
 /// Debris and enemies count as hit within these radii of the aim ray.
 const DEBRIS_RADIUS: f32 = 1.0;
 const ENEMY_RADIUS: f32 = 1.3;
+/// F's look target is tighter: only an item close to the crosshair counts.
+const STASH_RADIUS: f32 = 0.5;
 /// Seconds fishing clicks are ignored after a fishing request (the mirror lags).
 const FISH_CLICK_PAUSE: f32 = 0.4;
 
@@ -156,6 +163,7 @@ struct Keys {
     cancel: bool,
     interact: bool,
     interact_held: bool,
+    stash: bool,
     slot: Option<u8>,
     jump: bool,
     dive: bool,
@@ -178,6 +186,7 @@ impl Keys {
             cancel: scene.pressed("pause"),
             interact: scene.pressed("interact"),
             interact_held: scene.held("interact"),
+            stash: scene.pressed("stash"),
             slot: (1..=6u8).find(|i| scene.pressed(&format!("slot{i}"))),
             jump: scene.held("player.jump"),
             dive: scene.held("player.crouch"),
@@ -488,6 +497,25 @@ impl Local {
             }
         }
 
+        // ---- stash (F): the item looked at into the sac, else the newest kind out
+        let stash = !busy && !building;
+        let look = if stash {
+            let wall = ray(scene, origin, dir, DEBRIS_PICKUP_RANGE + 3.0).map(|(p, _)| p.dist(origin));
+            look_item(world, frame.me, feet, origin, dir, wall)
+        } else {
+            None
+        };
+        let out_kind = me.sac.last_out(|k| k.class() == ItemClass::Quest);
+        self.hud.stash_prompt = match (look.and_then(|id| world.dynamic.debris.get(&id)), out_kind) {
+            _ if !stash => None,
+            (Some(d), _) => Some(format!("F  Put {} in sac", d.kind.name())),
+            (None, Some(kind)) if slot == 2 => Some(format!("F  Take out {}", kind.name())),
+            _ => None,
+        };
+        if k.stash && stash {
+            out.push(look.map_or(Request::DropLast, Request::PickUpDebris));
+        }
+
         // ---- local visuals
         self.show_held(scene, me, first, busy || building);
         self.show_ghost(scene);
@@ -518,6 +546,7 @@ impl Local {
             ("player_place_requests", self.place_requests),
             ("player_boat", seated as i32),
             ("player_grapple_gap", self.grapple_gap.unwrap_or(-1)),
+            ("player_sac_items", me.sac.stacks().map(|(_, s)| s.count as i32).sum()),
         ];
         for (name, value) in counters {
             scene.set_counter(name, value);
@@ -1001,6 +1030,23 @@ fn ray(scene: &GameScene, origin: V3, dir: V3, max: f32) -> Option<(V3, V3)> {
     None
 }
 
+/// The world item F puts in the sac: the one closest to the aim ray among those whose
+/// STASH_RADIUS sphere it passes, within DEBRIS_PICKUP_RANGE of the feet and not pulled by
+/// someone else. `wall` is the distance to the first surface on the ray; an item further
+/// than its radius behind it is hidden (a resting item's centre lies on the deck the ray
+/// meets).
+fn look_item(world: &World, me: PlayerId, feet: V3, origin: V3, dir: V3, wall: Option<f32>) -> Option<EntityId> {
+    world
+        .dynamic
+        .debris
+        .iter()
+        .filter(|(_, d)| d.dragged_by.is_none_or(|by| by == me) && feet.dist_xz(d.pos) <= DEBRIS_PICKUP_RANGE)
+        .filter_map(|(id, d)| ray_sphere(origin, dir, d.pos, STASH_RADIUS).map(|t| (t, (origin + dir * t).dist(d.pos), *id)))
+        .filter(|(t, ..)| wall.is_none_or(|w| *t <= w + STASH_RADIUS))
+        .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(.., id)| id)
+}
+
 /// Distance along the ray to the sphere, if the ray passes through it.
 fn ray_sphere(origin: V3, dir: V3, centre: V3, r: f32) -> Option<f32> {
     let t = (centre - origin).dot(dir);
@@ -1093,5 +1139,30 @@ mod tests {
         // yaw +90 deg: body forward is -X, right is -Z.
         let r = frame_of(PI / 2.0, [1.0, 0.0, -1.0]);
         assert!((r.x + 1.0).abs() < 1e-4 && (r.z + 1.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn look_item_picks_the_nearest_visible_one() {
+        let mut w = World::new(1);
+        let me = w.join("Ana").unwrap();
+        w.dynamic.debris.clear();
+        let near = w.spawn_debris(ItemKind::Plank, V3::new(0.0, DECK_Y, -1.5));
+        let behind = w.spawn_debris(ItemKind::Bait, V3::new(0.0, DECK_Y, -1.8));
+        let (feet, eye) = (V3::new(0.0, DECK_Y, 0.0), V3::new(0.0, DECK_Y + 1.6, 0.0));
+        let at = |p: V3| (p - eye).normalize();
+        let down = at(V3::new(0.0, DECK_Y, -1.5));
+        assert_eq!(look_item(&w, me, feet, eye, down, None), Some(near));
+        let far = at(V3::new(0.0, DECK_Y, -1.8));
+        assert_eq!(look_item(&w, me, feet, eye, far, None), Some(behind), "the one under the crosshair");
+        let deck = V3::new(0.0, -0.45f32.sin(), -0.45f32.cos());
+        assert_eq!(look_item(&w, me, feet, eye, deck, None), None, "bare deck past them");
+        w.dynamic.debris.remove(&near);
+        assert_eq!(look_item(&w, me, feet, eye, far, None), Some(behind));
+        assert_eq!(look_item(&w, me, feet, eye, far, Some(0.5)), None, "behind a wall");
+        assert_eq!(look_item(&w, me, feet, eye, V3::new(0.0, 0.0, -1.0), None), None, "looking over it");
+        w.dynamic.debris.get_mut(&behind).unwrap().dragged_by = Some(me + 1);
+        assert_eq!(look_item(&w, me, feet, eye, far, None), None, "someone else pulls it");
+        w.dynamic.debris.get_mut(&behind).unwrap().dragged_by = None;
+        assert_eq!(look_item(&w, me, V3::new(0.0, DECK_Y, 3.0), eye, far, None), None, "out of reach");
     }
 }

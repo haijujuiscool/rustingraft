@@ -12,11 +12,17 @@
 //!   DropItem (debris kinds float away via `World::spawn_debris`), UseFlare
 //!   (flare_until = now + FLARE_SECONDS), Cook (raw fish -> cooked, at the lit campfire
 //!   within INTERACT_RANGE).
+//! - DropLast: one item of `Sac::last_out` (newest kind first, Quest items stay, hands
+//!   never) becomes a world item DROP_AHEAD in front of the player. It rests on the deck
+//!   or ground (`debris::rest_y`), else floats like debris. Empty: "Your sac is empty";
+//!   MAX_RESTING items already resting and this one would rest: "Too many things lying
+//!   around".
 
 use crate::content::{
     ItemClass, ItemKind, PlaceableKind, FLARE_SECONDS, HUNGER_DRAIN, HUNGER_FAST_MULT, MAX_HEALTH,
     MAX_HUNGER, REVIVE_HEALTH, REVIVE_RANGE, REVIVE_SECONDS, SAC_CAPACITIES, STARVE_DPS,
 };
+use crate::debris::{rest_y, wave, MAX_RESTING};
 use crate::fishing::Fishing;
 use crate::inventory::{Sac, Stack};
 use crate::math::{facing, wrap_angle, V3};
@@ -29,6 +35,8 @@ use serde::{Deserialize, Serialize};
 pub const MAX_COORD: f32 = 100_000.0;
 /// One PlayerTransform may move the player at most this far (absurd teleports are refused).
 pub const MAX_MOVE: f32 = 50.0;
+/// DropLast puts the item this far in front of the player's feet (m).
+pub const DROP_AHEAD: f32 = 1.2;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Player {
@@ -255,7 +263,7 @@ pub(crate) fn handle(
     w: &mut World,
     pid: PlayerId,
     req: Request,
-    _g: &dyn Ground,
+    g: &dyn Ground,
     ev: &mut Vec<Event>,
 ) {
     let now = w.now();
@@ -402,6 +410,22 @@ pub(crate) fn handle(
             p.reviving = None;
             p.revive_progress = 0.0;
         }
+        Request::DropLast => {
+            let Some(kind) = p.sac.last_out(|k| k.class() == ItemClass::Quest) else {
+                return deny(ev, pid, "Your sac is empty");
+            };
+            let at = p.pos.with_y(0.0) + facing(p.yaw) * DROP_AHEAD;
+            let rest = rest_y(&w.raft, g, at.x, at.z);
+            if rest.is_some() && w.dynamic.debris.values().filter(|d| d.resting).count() >= MAX_RESTING {
+                return deny(ev, pid, "Too many things lying around");
+            }
+            w.players.get_mut(&pid).expect("checked above").sac.remove(kind, 1);
+            let id = w.spawn_debris(kind, at.with_y(rest.unwrap_or_else(|| wave(at.x, at.z, now))));
+            if let Some(d) = w.dynamic.debris.get_mut(&id) {
+                d.resting = rest.is_some();
+            }
+            sound(ev, if rest.is_some() { SoundKind::Place } else { SoundKind::Splash }, at);
+        }
         _ => deny(ev, pid, "Not a player action"),
     }
 }
@@ -409,6 +433,7 @@ pub(crate) fn handle(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::DECK_Y;
     use crate::world::FlatGround;
 
     #[test]
@@ -604,6 +629,76 @@ mod tests {
         let p = w.player(a).unwrap();
         assert_eq!(p.flare_until, w.now() + FLARE_SECONDS as f64);
         assert_eq!(p.sac.count(ItemKind::Flare), 0);
+    }
+
+    #[test]
+    fn drop_last_rests_on_deck_or_floats() {
+        let mut w = World::new(1);
+        let a = w.join("Ana").unwrap();
+        w.dynamic.debris_spawn.timer = 1e9;
+        w.dynamic.debris.clear();
+        let p = w.player_mut(a).unwrap();
+        (p.pos, p.yaw) = (V3::new(0.0, DECK_Y, 0.0), 0.0);
+        p.heal = Some(Stack::new(ItemKind::Bandage, 1));
+        p.sac.add(ItemKind::Plank, 2);
+        p.sac.add(ItemKind::BeaconCore, 1);
+        p.sac.add(ItemKind::Bait, 1);
+        p.sac.add(ItemKind::Plank, 1);
+        // Newest kind first: every Plank, then the Bait; the beacon core and hands stay.
+        w.apply(a, Request::DropLast, &G);
+        let ids: Vec<EntityId> = w.dynamic.debris.keys().copied().collect();
+        let d = w.dynamic.debris[&ids[0]].clone();
+        assert!(d.kind == ItemKind::Plank && d.resting, "{d:?}");
+        assert_eq!(d.pos, V3::new(0.0, DECK_Y, -DROP_AHEAD), "on the deck in front");
+        for _ in 0..8 {
+            w.step(0.25, &G);
+        }
+        assert_eq!(w.dynamic.debris[&ids[0]].pos, d.pos, "resting items do not drift");
+        assert_eq!(w.player(a).unwrap().sac.count(ItemKind::Plank), 2);
+        w.apply(a, Request::DropLast, &G);
+        w.apply(a, Request::DropLast, &G);
+        w.apply(a, Request::DropLast, &G);
+        let kinds: Vec<ItemKind> = w.dynamic.debris.values().map(|d| d.kind).collect();
+        assert_eq!(kinds, [ItemKind::Plank, ItemKind::Plank, ItemKind::Plank, ItemKind::Bait]);
+        denied(&mut w, a, Request::DropLast, "Your sac is empty");
+        let p = w.player(a).unwrap();
+        assert!(p.sac.count(ItemKind::BeaconCore) == 1 && p.heal.is_some());
+        // Over water it floats and drifts.
+        w.player_mut(a).unwrap().pos = V3::new(20.0, 0.0, 0.0);
+        w.player_mut(a).unwrap().sac.add(ItemKind::Bandage, 1);
+        w.apply(a, Request::DropLast, &G);
+        let (&id, d) = w.dynamic.debris.last_key_value().unwrap();
+        assert!(d.kind == ItemKind::Bandage && !d.resting && d.pos.y.abs() <= 0.25);
+        w.step(0.25, &G);
+        assert!((w.dynamic.debris[&id].pos.x - 20.3).abs() < 1e-4);
+        // Back in with PickUpDebris.
+        w.player_mut(a).unwrap().pos = V3::new(0.0, DECK_Y, 0.0);
+        assert!(w.dynamic.debris[&ids[0]].resting);
+        w.apply(a, Request::PickUpDebris(ids[0]), &G);
+        assert!(!w.dynamic.debris.contains_key(&ids[0]));
+        assert_eq!(w.player(a).unwrap().sac.count(ItemKind::Plank), 1);
+    }
+
+    #[test]
+    fn drop_last_caps_resting_items() {
+        let mut w = World::new(1);
+        let a = w.join("Ana").unwrap();
+        w.dynamic.debris_spawn.timer = 1e9;
+        w.dynamic.debris.clear();
+        let p = w.player_mut(a).unwrap();
+        (p.pos, p.yaw) = (V3::new(0.0, DECK_Y, 0.0), 0.0);
+        p.sac.add(ItemKind::Bait, 3);
+        for _ in 1..MAX_RESTING {
+            let id = w.spawn_debris(ItemKind::Plank, V3::new(0.0, DECK_Y, 1.0));
+            w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        }
+        w.apply(a, Request::DropLast, &G);
+        assert_eq!(w.dynamic.debris.values().filter(|d| d.resting).count(), MAX_RESTING);
+        denied(&mut w, a, Request::DropLast, "Too many things lying around");
+        // Floating drops age out, so they are not capped.
+        w.player_mut(a).unwrap().pos = V3::new(20.0, 0.0, 0.0);
+        w.apply(a, Request::DropLast, &G);
+        assert_eq!(w.player(a).unwrap().sac.count(ItemKind::Bait), 1);
     }
 
     #[test]

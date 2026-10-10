@@ -16,7 +16,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
 /// Bump on any wire change (messages, or the sim types they carry).
-pub const PROTOCOL_VERSION: u32 = 3;
+pub const PROTOCOL_VERSION: u32 = 4;
 
 /// Slow sections and own player entries: checked at 4 Hz, sent when changed.
 const SECTION_PERIOD: f64 = 0.25;

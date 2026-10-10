@@ -332,6 +332,7 @@ impl Game {
             ("fuel", fire.fuel as i32),
             ("raft_tiles", w.raft.tiles.len() as i32),
             ("debris", w.dynamic.debris.len() as i32),
+            ("world_items_resting", w.dynamic.debris.values().filter(|d| d.resting).count() as i32),
             ("enemies", w.dynamic.enemies.len() as i32),
         ];
         for (name, value) in counters {

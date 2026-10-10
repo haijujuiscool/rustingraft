@@ -1,29 +1,40 @@
 //! Floating debris and carcasses (spec 4, 6, 6.2).
 //!
 //! - `step`: on average every DEBRIS_SPAWN_INTERVAL (while fewer than DEBRIS_MAX pieces
-//!   float) a kind from DEBRIS_WEIGHTS spawns at x = DEBRIS_SPAWN_X, z in
-//!   +-DEBRIS_SPAWN_HALF_Z (world coordinates; the raft stays at the origin). Everything
-//!   not dragged drifts with CURRENT and despawns when it crosses x = DEBRIS_DESPAWN_X
-//!   (or after DEBRIS_MAX_AGE, for pieces dropped far from the current's lane). Dragged
-//!   debris moves toward its player at HARPOON_DRAG_SPEED and, within DRAG_ARRIVE_DIST,
-//!   goes into the sac if it fits (else it stops being dragged). Heights follow `wave`.
-//! - PickUpDebris: within DEBRIS_PICKUP_RANGE; one item into the sac or Denied.
+//!   float; resting items do not count) a kind from DEBRIS_WEIGHTS spawns at
+//!   x = DEBRIS_SPAWN_X, z in +-DEBRIS_SPAWN_HALF_Z (world coordinates; the raft stays at
+//!   the origin). Everything not dragged or resting drifts with CURRENT and despawns when
+//!   it crosses x = DEBRIS_DESPAWN_X (or after DEBRIS_MAX_AGE, for pieces dropped far from
+//!   the current's lane). Dragged debris moves toward its player at HARPOON_DRAG_SPEED and,
+//!   within DRAG_ARRIVE_DIST, goes into the sac if it fits (else it stops being dragged).
+//!   Heights follow `wave`.
+//! - Resting items (`resting`, dropped by DropLast where `rest_y` finds the deck or ground
+//!   above the sea) lie still at that height: no drift, no bob, no age-out; at most
+//!   MAX_RESTING of them. One whose support is gone floats again; a dragged one stops
+//!   resting. Either way its DEBRIS_MAX_AGE clock restarts. Floating debris never comes
+//!   to rest.
+//! - PickUpDebris: within DEBRIS_PICKUP_RANGE; one item into the sac or Denied (resting
+//!   items too).
 //! - HarpoonDebris: within the player's harpoon range and off cooldown; sets `dragged_by`.
 //! - Carcasses (enemies.rs) and dropped items (players.rs) use `World::spawn_debris`.
 
 use crate::content::{
     harpoon, Goods, ItemKind, CURRENT, DEBRIS_DESPAWN_X, DEBRIS_MAX, DEBRIS_PICKUP_RANGE,
-    DEBRIS_SPAWN_HALF_Z, DEBRIS_SPAWN_INTERVAL, DEBRIS_SPAWN_X, DEBRIS_WEIGHTS, DRAG_ARRIVE_DIST,
-    HARPOON_DRAG_SPEED,
+    DEBRIS_SPAWN_HALF_Z, DEBRIS_SPAWN_INTERVAL, DEBRIS_SPAWN_X, DEBRIS_WEIGHTS, DECK_Y,
+    DRAG_ARRIVE_DIST, HARPOON_DRAG_SPEED,
 };
 use crate::math::V3;
 use crate::msg::{deny, sound, toast, Event, Request, SoundKind};
+use crate::raft::Raft;
 use crate::world::{Ground, PlayerId, World};
 use serde::{Deserialize, Serialize};
 
 /// Debris that never crosses the despawn line (dropped near a far island) sinks after
 /// this many seconds (tuning).
 pub const DEBRIS_MAX_AGE: f64 = 600.0;
+/// At most this many resting items in the world (DropLast denies more): the world goes
+/// into every Welcome and snapshot, which must fit one relay frame (about 13 KB here).
+pub const MAX_RESTING: usize = 100;
 
 /// Sea surface height (m) at (x, z) at time `t` (`World::now`). The view renders its
 /// water with the same function so floating things bob in step with it: three sines,
@@ -43,6 +54,9 @@ pub struct Debris {
     pub spawned_at: f64,
     /// Being pulled by this player's harpoon.
     pub dragged_by: Option<PlayerId>,
+    /// Lying still on the deck or on ground (see the module doc).
+    #[serde(default)]
+    pub resting: bool,
 }
 
 impl Debris {
@@ -52,7 +66,18 @@ impl Debris {
             pos,
             spawned_at: now,
             dragged_by: None,
+            resting: false,
         }
+    }
+}
+
+/// Height a dropped item rests at over (x, z): the deck, or ground above the sea. None
+/// over water, where it floats.
+pub(crate) fn rest_y(raft: &Raft, g: &dyn Ground, x: f32, z: f32) -> Option<f32> {
+    if raft.covers_xz(x, z) {
+        Some(DECK_Y)
+    } else {
+        g.height_at(x, z).filter(|h| *h > 0.0)
     }
 }
 
@@ -71,12 +96,12 @@ impl Default for DebrisSpawn {
     }
 }
 
-pub(crate) fn step(w: &mut World, dt: f32, _g: &dyn Ground, ev: &mut Vec<Event>) {
+pub(crate) fn step(w: &mut World, dt: f32, g: &dyn Ground, ev: &mut Vec<Event>) {
     let now = w.now();
     spawn(w, dt);
     let mut arrived = Vec::new();
     let mut gone = Vec::new();
-    let players = &w.players;
+    let (players, raft) = (&w.players, &w.raft);
     for (&id, d) in w.dynamic.debris.iter_mut() {
         let puller = d.dragged_by.and_then(|pid| {
             players
@@ -85,6 +110,10 @@ pub(crate) fn step(w: &mut World, dt: f32, _g: &dyn Ground, ev: &mut Vec<Event>)
                 .map(|p| (pid, p.pos))
         });
         if let Some((pid, to)) = puller {
+            // Floating again: the age-out clock starts now.
+            if std::mem::take(&mut d.resting) {
+                d.spawned_at = now;
+            }
             d.pos = d
                 .pos
                 .move_toward(to.with_y(d.pos.y), HARPOON_DRAG_SPEED * dt);
@@ -93,6 +122,19 @@ pub(crate) fn step(w: &mut World, dt: f32, _g: &dyn Ground, ev: &mut Vec<Event>)
             }
         } else {
             d.dragged_by = None;
+            // Resting items never despawn; DropLast keeps them under MAX_RESTING.
+            if d.resting {
+                match rest_y(raft, g, d.pos.x, d.pos.z) {
+                    Some(y) => {
+                        d.pos.y = y;
+                        continue;
+                    }
+                    None => {
+                        d.resting = false;
+                        d.spawned_at = now;
+                    }
+                }
+            }
             let x0 = d.pos.x;
             d.pos += CURRENT * dt;
             let crossed = x0 <= DEBRIS_DESPAWN_X && d.pos.x > DEBRIS_DESPAWN_X;
@@ -127,7 +169,7 @@ fn spawn(w: &mut World, dt: f32) {
     }
     // Gaps of 0.5-1.5 x the interval average out at DEBRIS_SPAWN_INTERVAL.
     s.timer += w.rng.range(0.5, 1.5) * DEBRIS_SPAWN_INTERVAL;
-    if w.dynamic.debris.len() >= DEBRIS_MAX {
+    if w.dynamic.debris.values().filter(|d| !d.resting).count() >= DEBRIS_MAX {
         return;
     }
     let weights = DEBRIS_WEIGHTS.map(|(_, weight)| weight);
@@ -277,6 +319,15 @@ mod tests {
         w.dynamic.debris_spawn.timer = 0.0;
         w.step(0.1, &G);
         assert_eq!(w.dynamic.debris.len(), DEBRIS_MAX);
+        // Resting items do not count toward the cap.
+        let (mut w, _) = setup();
+        for i in 0..DEBRIS_MAX {
+            let id = w.spawn_debris(Plank, V3::new(-1.0, DECK_Y, i as f32 * 0.01));
+            w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        }
+        w.dynamic.debris_spawn.timer = 0.0;
+        w.step(0.1, &G);
+        assert_eq!(w.dynamic.debris.len(), DEBRIS_MAX + 1);
     }
 
     #[test]
@@ -363,6 +414,50 @@ mod tests {
         let ev = w.step(0.25, &G);
         assert!(ev.iter().any(|e| matches!(e, Event::Toast { .. })));
         assert_eq!(w.dynamic.debris[&far].dragged_by, None);
+    }
+
+    #[test]
+    fn resting_items_float_off_without_support() {
+        let (mut w, a) = setup();
+        let id = w.spawn_debris(Bait, V3::new(50.0, 2.0, 0.0));
+        w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        w.clock.elapsed += DEBRIS_MAX_AGE;
+        w.step(0.25, &FlatGround { height: Some(2.0) });
+        assert_eq!(w.dynamic.debris[&id].pos, V3::new(50.0, 2.0, 0.0), "lies still, no age-out");
+        w.step(0.25, &G);
+        let d = &w.dynamic.debris[&id];
+        assert!(!d.resting && (d.pos.x - 50.3).abs() < 1e-4 && d.pos.y.abs() <= 0.25, "{d:?}");
+        assert!(w.now() - d.spawned_at < 1.0, "floats a full DEBRIS_MAX_AGE from here");
+        // A resting item can be picked up again.
+        let id = w.spawn_debris(Bait, V3::new(1.0, DECK_Y, 0.0));
+        w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        w.apply(a, Request::PickUpDebris(id), &G);
+        assert!(!w.dynamic.debris.contains_key(&id));
+        assert_eq!(w.player(a).unwrap().sac.count(Bait), 1);
+    }
+
+    #[test]
+    fn harpooned_resting_items_float_on() {
+        let (mut w, a) = setup();
+        let id = w.spawn_debris(Plank, V3::new(1.0, DECK_Y, 0.0));
+        w.dynamic.debris.get_mut(&id).unwrap().resting = true;
+        w.clock.elapsed += DEBRIS_MAX_AGE;
+        // Full sac: it reaches the player, stays out and must not age out at once.
+        fill_sac(&mut w, a);
+        assert!(!denied(&w.apply(a, Request::HarpoonDebris(id), &G)));
+        w.step(0.25, &G);
+        w.step(0.25, &G);
+        let d = w.dynamic.debris.get(&id);
+        assert!(d.is_some_and(|d| !d.resting && d.dragged_by.is_none()), "{d:?}");
+    }
+
+    #[test]
+    fn old_debris_json_loads() {
+        let d: Debris = serde_json::from_str(
+            r#"{"kind":"Plank","pos":{"x":1.0,"y":0.0,"z":2.0},"spawned_at":3.0,"dragged_by":null}"#,
+        )
+        .unwrap();
+        assert_eq!(d, Debris::new(Plank, V3::new(1.0, 0.0, 2.0), 3.0));
     }
 
     #[test]

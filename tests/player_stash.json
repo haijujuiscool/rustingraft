@@ -1,0 +1,20 @@
+{"name": "F drops the last sac item on the deck and, looking at it in first person, puts it back", "seed": 7, "ticks": 160, "files": {"world.json": "fixtures/player_stash.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.0}},
+  {"tick": 40, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": 0.0}},
+  {"tick": 40, "expect": {"counter": "player_sac_items", "equals": 5}},
+  {"tick": 45, "tap": "slot2"},
+  {"tick": 52, "capture": "shots/player_stash_take.png"},
+  {"tick": 55, "tap": "stash"},
+  {"tick": 56, "within": 80, "expect": {"counter": "player_sac_items", "equals": 4}},
+  {"tick": 56, "within": 80, "expect": {"counter": "world_items_resting", "equals": 1}},
+  {"tick": 81, "until": 100, "expect": {"counter": "world_items_resting", "equals": 1}},
+  {"tick": 85, "tap": "camera"},
+  {"tick": 86, "within": 90, "expect": {"counter": "player_first_person", "equals": 1}},
+  {"tick": 90, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.93}},
+  {"tick": 100, "capture": "shots/player_stash_drop.png"},
+  {"tick": 110, "tap": "stash"},
+  {"tick": 111, "within": 140, "expect": {"counter": "player_sac_items", "equals": 5}},
+  {"tick": 111, "within": 140, "expect": {"counter": "world_items_resting", "equals": 0}}
+]}

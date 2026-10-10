@@ -31,6 +31,7 @@ On Linux, build the export on a Linux machine (`rusting export . ~/games`).
 | Right mouse | Aim (harpoon, rod) |
 | 1 - 6 | Hotbar: harpoon, sac, melee, food, heal, fishing rod |
 | E | Interact: pick up, talk, open, board a boat, revive a friend |
+| F | Put the item you look at in the sac; looking at nothing, take the last one out |
 | B | Build menu (near the workbench) |
 | R | Rotate the build ghost |
 | Tab | Sac (inventory) |

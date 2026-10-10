@@ -20,12 +20,17 @@ impl Stack {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Sac {
     pub slots: Vec<Option<Stack>>,
+    /// Kinds in the order they last entered the sac, newest last (`last_out`).
+    /// May name kinds the sac no longer holds.
+    #[serde(default)]
+    pub order: Vec<ItemKind>,
 }
 
 impl Sac {
     pub fn new(capacity: usize) -> Sac {
         Sac {
             slots: vec![None; capacity],
+            order: Vec::new(),
         }
     }
 
@@ -72,10 +77,10 @@ impl Sac {
 
     /// Adds up to `n`, topping up existing stacks first. Returns the leftover that did not fit.
     pub fn add(&mut self, kind: ItemKind, mut n: u32) -> u32 {
-        let max = kind.stack_size();
+        let (max, added) = (kind.stack_size(), n);
         for s in self.slots.iter_mut().flatten() {
             if n == 0 {
-                return 0;
+                break;
             }
             if s.kind == kind && s.count < max {
                 let put = n.min(max - s.count);
@@ -92,6 +97,9 @@ impl Sac {
                 *slot = Some(Stack::new(kind, put));
                 n -= put;
             }
+        }
+        if n < added {
+            self.touch(kind);
         }
         n
     }
@@ -179,11 +187,30 @@ impl Sac {
     pub fn exchange_with(&mut self, slot: usize, hand: &mut Option<Stack>) -> bool {
         match self.slots.get_mut(slot) {
             Some(s) => {
+                let before = s.map(|x| x.kind);
                 exchange(s, hand);
+                if let Some(k) = s.map(|x| x.kind).filter(|k| before != Some(*k)) {
+                    self.touch(k);
+                }
                 true
             }
             None => false,
         }
+    }
+
+    /// The kind `Request::DropLast` takes out: the newest kind in `order` the sac still
+    /// holds, else the one in the highest occupied slot. Kinds passing `skip` never come out.
+    pub fn last_out(&self, skip: impl Fn(ItemKind) -> bool) -> Option<ItemKind> {
+        let newest = self.order.iter().rev().find(|k| !skip(**k) && self.count(**k) > 0);
+        newest.copied().or_else(|| self.slots.iter().rev().flatten().map(|s| s.kind).find(|k| !skip(*k)))
+    }
+
+    /// Moves `kind` to the end of `order` and forgets kinds the sac no longer holds.
+    fn touch(&mut self, kind: ItemKind) {
+        self.order.retain(|k| *k != kind);
+        self.order.push(kind);
+        let slots = &self.slots;
+        self.order.retain(|k| slots.iter().flatten().any(|s| s.kind == *k));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -291,5 +318,34 @@ mod tests {
         assert_eq!(sac.capacity(), 8);
         sac.upgrade(4);
         assert_eq!(sac.capacity(), 8);
+    }
+
+    #[test]
+    fn last_in_comes_out_first() {
+        let mut sac = Sac::new(4);
+        sac.add(Plank, 2);
+        sac.add(Bait, 3);
+        sac.add(Plank, 1);
+        assert_eq!(sac.last_out(|_| false), Some(Plank), "Plank entered last");
+        assert!(sac.remove(Plank, 3));
+        assert_eq!(sac.last_out(|_| false), Some(Bait));
+        assert_eq!(sac.last_out(|k| k == Bait), None);
+        sac.add(BeaconCore, 1);
+        assert_eq!(sac.last_out(|k| k == BeaconCore), Some(Bait), "skipped kinds stay in");
+        let mut hand = Some(Stack::new(Flare, 1));
+        sac.exchange_with(3, &mut hand);
+        assert_eq!(sac.last_out(|_| false), Some(Flare), "a stack from a hand counts as added");
+        assert!(!sac.order.contains(&Plank), "kinds that left are forgotten");
+        sac.order.clear();
+        assert_eq!(sac.last_out(|_| false), Some(Flare), "no order: the highest slot");
+        assert_eq!(Sac::new(2).last_out(|_| false), None);
+    }
+
+    #[test]
+    fn old_sac_json_loads() {
+        let sac: Sac = serde_json::from_str(r#"{"slots":[{"kind":"Plank","count":2},null]}"#).unwrap();
+        assert_eq!(sac.count(Plank), 2);
+        assert!(sac.order.is_empty());
+        assert_eq!(sac.last_out(|_| false), Some(Plank));
     }
 }

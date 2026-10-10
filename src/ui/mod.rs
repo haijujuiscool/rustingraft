@@ -58,6 +58,7 @@ struct Toast {
 #[derive(Default)]
 struct Keys {
     interact: String,
+    stash: String,
     sac: String,
     build: String,
     rotate: String,
@@ -241,6 +242,7 @@ fn read_keys(scene: &mut GameScene) -> Keys {
     };
     Keys {
         interact: key("interact", "E"),
+        stash: key("stash", "F"),
         sac: key("sac", "Tab"),
         build: key("build", "B"),
         rotate: key("rotate", "R"),
