@@ -1,0 +1,9 @@
+{"name": "Flow 8b: the campfire burns out at night and crawlers board the raft", "seed": 7, "ticks": 820, "files": {"world.json": "fixtures/flow_dark.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [1.0, 1.35, 2.8]}},
+  {"tick": 40, "capture": "shots/flow_08_fire_low.png"},
+  {"tick": 41, "within": 400, "expect": {"counter": "fuel", "less_than": 0.01}},
+  {"tick": 41, "within": 760, "expect": {"counter": "enemies", "greater_than": 1}},
+  {"tick": 790, "capture": "shots/flow_08_crawlers.png"}
+]}

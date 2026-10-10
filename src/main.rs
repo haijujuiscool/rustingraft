@@ -1,4 +1,6 @@
 mod app;
+#[cfg(test)]
+mod flow_fixtures;
 mod ground;
 mod player;
 mod save;

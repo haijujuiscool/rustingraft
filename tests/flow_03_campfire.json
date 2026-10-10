@@ -1,0 +1,18 @@
+{"name": "Flow 3: E on the campfire, Feed 5 wood four times and 1 oil once reaches level 2 (25 points)", "seed": 7, "ticks": 160, "files": {"world.json": "fixtures/flow_campfire.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [1.0, 1.35, 2.8]}},
+  {"tick": 45, "tap": "interact"},
+  {"tick": 46, "within": 60, "expect": {"counter": "ui_window", "equals": 2}},
+  {"tick": 62, "capture": "shots/flow_03_campfire.png"},
+  {"tick": 65, "click": {"text": "Feed", "index": 1}},
+  {"tick": 72, "click": {"text": "Feed", "index": 1}},
+  {"tick": 79, "click": {"text": "Feed", "index": 1}},
+  {"tick": 86, "click": {"text": "Feed", "index": 1}},
+  {"tick": 87, "within": 95, "expect": {"counter": "wood", "equals": 0}},
+  {"tick": 96, "expect": {"counter": "campfire_level", "equals": 1}},
+  {"tick": 100, "click": {"text": "Feed", "index": 2}},
+  {"tick": 101, "within": 115, "expect": {"counter": "oil", "equals": 1}},
+  {"tick": 101, "within": 115, "expect": {"counter": "campfire_level", "equals": 2}},
+  {"tick": 125, "capture": "shots/flow_03_level2.png"}
+]}

@@ -1,0 +1,20 @@
+{"name": "Flow 2: E picks up a plank, scrap and a crawler carcass off the north edge; E at the shredder turns them into wood, metal and biomass", "seed": 7, "ticks": 600, "files": {"world.json": "fixtures/flow_shred.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/transform/position", "value": [0.0, 1.35, -3.6]}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.0}},
+  {"tick": 30, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.4}},
+  {"tick": 38, "capture": "shots/flow_02_debris.png"},
+  {"tick": 40, "tap": "interact"},
+  {"tick": 55, "tap": "interact"},
+  {"tick": 70, "tap": "interact"},
+  {"tick": 71, "within": 90, "expect": {"counter": "debris", "less_than": 1}},
+  {"tick": 95, "set": {"entity": "Player", "path": "/transform/position", "value": [3.0, 1.35, -1.8]}},
+  {"tick": 95, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 0.0}},
+  {"tick": 110, "capture": "shots/flow_02_shredder_prompt.png"},
+  {"tick": 115, "tap": "interact"},
+  {"tick": 116, "within": 500, "expect": {"counter": "wood", "equals": 3}},
+  {"tick": 116, "within": 500, "expect": {"counter": "metal", "equals": 2}},
+  {"tick": 116, "within": 500, "expect": {"counter": "biomass", "equals": 2}},
+  {"tick": 520, "capture": "shots/flow_02_shredded.png"}
+]}

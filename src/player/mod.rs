@@ -697,6 +697,7 @@ impl Local {
         out: &mut Vec<Request>,
     ) {
         self.fish_pause = (self.fish_pause - dt).max(0.0);
+        self.hud.fishing = FishingUi::default();
         let Some(f) = &me.fishing else {
             self.reel = None;
             self.cancel_sent = false;

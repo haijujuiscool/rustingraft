@@ -5,7 +5,7 @@ catch to Barnaby on Hook Isle, shred floating debris into wood and metal, grow t
 the campfire through five levels, build farms, rescue survivors by radio and sail out to
 harder islands. Days last 5 minutes, nights 1 minute: stay near the fire after dark.
 
-Built with [RustingEngine](https://github.com/GoingRusting/RustingEngine) 2.2.0. A full run
+Built with [RustingEngine](https://github.com/GoingRusting/RustingEngine) 2.3.0. A full run
 takes 1 to 2 hours.
 
 ## Play
@@ -88,4 +88,5 @@ cargo test --workspace
 
 `docs/CLIENT_CONTRACT.md` describes how the client modules fit together, and
 `docs/superpowers/specs/2026-10-09-rusting-raft-design.md` the full game design. Asset
-credits are in `assets/CREDITS.md`.
+credits are in `assets/CREDITS.md`. `missingFeatures.md` lists what the game needed from
+the engine and wrote itself for now.

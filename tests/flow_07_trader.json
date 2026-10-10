@@ -1,0 +1,17 @@
+{"name": "Flow 7: E by the docked trader opens Trade, Buy bandages takes 40 coins and fills the sac", "seed": 7, "ticks": 170, "files": {"world.json": "fixtures/flow_trader.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [3.9, 1.35, 0.0]}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": -1.5708}},
+  {"tick": 50, "capture": "shots/flow_07_dock.png"},
+  {"tick": 55, "tap": "interact"},
+  {"tick": 56, "within": 70, "expect": {"counter": "ui_window", "equals": 5}},
+  {"tick": 72, "capture": "shots/flow_07_trader.png"},
+  {"tick": 75, "click": {"text": "Buy", "index": 1}},
+  {"tick": 76, "within": 95, "expect": {"counter": "coins", "equals": 60}},
+  {"tick": 100, "click": "Close"},
+  {"tick": 101, "within": 110, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 115, "tap": "sac"},
+  {"tick": 116, "within": 125, "expect": {"counter": "ui_window", "equals": 7}},
+  {"tick": 135, "capture": "shots/flow_07_sac.png"}
+]}

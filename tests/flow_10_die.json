@@ -1,0 +1,8 @@
+{"name": "Flow 10: starving on 1 health downs the solo sailor and the game over screen shows", "seed": 7, "ticks": 200, "files": {"world.json": "fixtures/flow_die.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 6, "within": 30, "expect": {"counter": "hp", "less_than": 2}},
+  {"tick": 30, "capture": "shots/flow_10_starving.png"},
+  {"tick": 31, "within": 150, "expect": {"counter": "phase", "equals": 3}},
+  {"tick": 170, "capture": "shots/flow_10_game_over.png"}
+]}

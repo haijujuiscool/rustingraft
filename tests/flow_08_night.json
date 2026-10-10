@@ -1,0 +1,9 @@
+{"name": "Flow 8a: swimming away from the fire when night falls brings a gloomfin", "seed": 7, "ticks": 900, "files": {"world.json": "fixtures/flow_night.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [0.0, -1.2, 10.0]}},
+  {"tick": 36, "expect": {"counter": "enemies", "equals": 0}},
+  {"tick": 40, "capture": "shots/flow_08_dusk.png"},
+  {"tick": 41, "within": 800, "expect": {"counter": "enemies", "greater_than": 0}},
+  {"tick": 820, "capture": "shots/flow_08_gloomfin.png"}
+]}

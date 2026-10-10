@@ -1,0 +1,230 @@
+{
+ "name": "Flow 5: at campfire level 3 place a Wood Farm (scrollbar drag to reach the row), start it with E, collect after 90 s, shred the palm bundles into wood",
+ "seed": 7,
+ "ticks": 6200,
+ "files": {
+  "world.json": "fixtures/flow_farm.json"
+ },
+ "steps": [
+  {
+   "tick": 5,
+   "click": "Load world"
+  },
+  {
+   "tick": 6,
+   "within": 30,
+   "expect": {
+    "counter": "phase",
+    "equals": 2
+   }
+  },
+  {
+   "tick": 35,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     -3.0,
+     1.35,
+     -0.6
+    ]
+   }
+  },
+  {
+   "tick": 45,
+   "tap": "build"
+  },
+  {
+   "tick": 46,
+   "within": 60,
+   "expect": {
+    "counter": "ui_window",
+    "equals": 1
+   }
+  },
+  {
+   "tick": 62,
+   "capture": "shots/flow_05_workbench.png"
+  },
+  {
+   "tick": 63,
+   "pointer": [
+    0.7375,
+    0.36
+   ]
+  },
+  {
+   "tick": 64,
+   "press": "use"
+  },
+  {
+   "tick": 66,
+   "pointer": [
+    0.7375,
+    0.45
+   ]
+  },
+  {
+   "tick": 68,
+   "pointer": [
+    0.7375,
+    0.55
+   ]
+  },
+  {
+   "tick": 70,
+   "release": "use"
+  },
+  {
+   "tick": 72,
+   "capture": "shots/flow_05_scrolled.png"
+  },
+  {
+   "tick": 75,
+   "click": {
+    "text": "Place",
+    "index": 0
+   }
+  },
+  {
+   "tick": 76,
+   "within": 85,
+   "expect": {
+    "counter": "ui_window",
+    "equals": 0
+   }
+  },
+  {
+   "tick": 80,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     0.0,
+     1.35,
+     -0.5
+    ]
+   }
+  },
+  {
+   "tick": 80,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": 0.0
+   }
+  },
+  {
+   "tick": 80,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.93
+   }
+  },
+  {
+   "tick": 81,
+   "within": 100,
+   "expect": {
+    "counter": "player_ghost",
+    "equals": 2
+   }
+  },
+  {
+   "tick": 105,
+   "capture": "shots/flow_05_ghost.png"
+  },
+  {
+   "tick": 110,
+   "tap": "use"
+  },
+  {
+   "tick": 111,
+   "within": 140,
+   "expect": {
+    "counter": "wood",
+    "equals": 20
+   }
+  },
+  {
+   "tick": 111,
+   "within": 140,
+   "expect": {
+    "counter": "metal",
+    "equals": 10
+   }
+  },
+  {
+   "tick": 140,
+   "tap": "pause"
+  },
+  {
+   "tick": 141,
+   "within": 150,
+   "expect": {
+    "counter": "player_ghost",
+    "equals": 0
+   }
+  },
+  {
+   "tick": 145,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     0.0,
+     1.35,
+     -1.5
+    ]
+   }
+  },
+  {
+   "tick": 160,
+   "capture": "shots/flow_05_start_prompt.png"
+  },
+  {
+   "tick": 165,
+   "tap": "interact"
+  },
+  {
+   "tick": 200,
+   "capture": "shots/flow_05_growing.png"
+  },
+  {
+   "tick": 5600,
+   "tap": "interact"
+  },
+  {
+   "tick": 5620,
+   "capture": "shots/flow_05_collected.png"
+  },
+  {
+   "tick": 5625,
+   "set": {
+    "entity": "Player",
+    "path": "/transform/position",
+    "value": [
+     3.0,
+     1.35,
+     -1.8
+    ]
+   }
+  },
+  {
+   "tick": 5640,
+   "tap": "interact"
+  },
+  {
+   "tick": 5641,
+   "within": 6150,
+   "expect": {
+    "counter": "wood",
+    "equals": 28
+   }
+  },
+  {
+   "tick": 6160,
+   "capture": "shots/flow_05_wood.png"
+  }
+ ]
+}

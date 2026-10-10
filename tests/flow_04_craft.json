@@ -1,0 +1,23 @@
+{"name": "Flow 4: E at the workbench, Craft bandages (pays 1 wood 2 biomass), then Place a floor tile with the ghost", "seed": 7, "ticks": 200, "files": {"world.json": "fixtures/flow_craft.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [-3.0, 1.35, -0.2]}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/yaw", "value": 1.5708}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/components/rusting.player_controller/pitch", "value": -0.93}},
+  {"tick": 45, "tap": "interact"},
+  {"tick": 46, "within": 60, "expect": {"counter": "ui_window", "equals": 1}},
+  {"tick": 62, "capture": "shots/flow_04_workbench.png"},
+  {"tick": 65, "click": {"text": "Craft", "index": 2}},
+  {"tick": 66, "within": 85, "expect": {"counter": "biomass", "equals": 2}},
+  {"tick": 66, "within": 85, "expect": {"counter": "wood", "equals": 39}},
+  {"tick": 90, "click": {"text": "Place", "index": 0}},
+  {"tick": 91, "within": 100, "expect": {"counter": "ui_window", "equals": 0}},
+  {"tick": 91, "within": 110, "expect": {"counter": "player_ghost", "equals": 2}},
+  {"tick": 115, "capture": "shots/flow_04_ghost.png"},
+  {"tick": 120, "tap": "use"},
+  {"tick": 121, "within": 150, "expect": {"counter": "raft_tiles", "equals": 17}},
+  {"tick": 121, "within": 150, "expect": {"counter": "wood", "equals": 35}},
+  {"tick": 155, "tap": "pause"},
+  {"tick": 156, "within": 165, "expect": {"counter": "player_ghost", "equals": 0}},
+  {"tick": 170, "capture": "shots/flow_04_placed.png"}
+]}

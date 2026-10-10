@@ -1,0 +1,17 @@
+{"name": "Flow 9: E on the logbook, Save world pays 150 + 75 x level and writes world.json; a second save is refused", "seed": 7, "ticks": 160, "files": {"world.json": "fixtures/flow_save.json"}, "steps": [
+  {"tick": 5, "click": "Load world"},
+  {"tick": 6, "within": 30, "expect": {"counter": "phase", "equals": 2}},
+  {"tick": 35, "set": {"entity": "Player", "path": "/transform/position", "value": [-3.0, 1.35, 1.2]}},
+  {"tick": 36, "within": 40, "expect": {"counter": "coins", "equals": 300}},
+  {"tick": 45, "tap": "interact"},
+  {"tick": 46, "within": 60, "expect": {"counter": "ui_window", "equals": 3}},
+  {"tick": 62, "capture": "shots/flow_09_logbook.png"},
+  {"tick": 65, "click": "Save world"},
+  {"tick": 66, "within": 85, "expect": {"counter": "coins", "equals": 75}},
+  {"tick": 90, "expect_file": {"path": "world.json", "contains": "\"save_count\":1"}},
+  {"tick": 95, "capture": "shots/flow_09_saved.png"},
+  {"tick": 100, "click": "Save world"},
+  {"tick": 101, "until": 140, "expect": {"counter": "coins", "equals": 75}},
+  {"tick": 140, "expect_file": {"path": "world.json", "contains": "\"save_count\":1"}},
+  {"tick": 145, "capture": "shots/flow_09_denied.png"}
+]}

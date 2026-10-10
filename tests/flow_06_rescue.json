@@ -1,0 +1,58 @@
+{
+ "name": "Flow 6b: with a Radio Station on the raft, talk to the Palm Reef survivor; the survivor moves onto the raft and runs the wood farm into the shredder",
+ "seed": 7,
+ "ticks": 870,
+ "files": {
+  "world.json": "fixtures/flow_rescue.json"
+ },
+ "steps": [
+  {
+   "tick": 5,
+   "click": "Load world"
+  },
+  {
+   "tick": 6,
+   "within": 30,
+   "expect": {
+    "counter": "phase",
+    "equals": 2
+   }
+  },
+  {
+   "tick": 35,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/yaw",
+    "value": 2.4
+   }
+  },
+  {
+   "tick": 35,
+   "set": {
+    "entity": "Player",
+    "path": "/components/rusting.player_controller/pitch",
+    "value": -0.2
+   }
+  },
+  {
+   "tick": 80,
+   "capture": "shots/flow_06_survivor.png"
+  },
+  {
+   "tick": 85,
+   "tap": "interact"
+  },
+  {
+   "tick": 86,
+   "within": 850,
+   "expect": {
+    "counter": "wood",
+    "equals": 8
+   }
+  },
+  {
+   "tick": 110,
+   "capture": "shots/flow_06_rescued_toast.png"
+  }
+ ]
+}
