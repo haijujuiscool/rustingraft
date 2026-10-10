@@ -213,6 +213,7 @@ fn tri(v: &mut Vec<MeshVertex>, o: [f32; 2], a: [f32; 3], b: [f32; 3], c: [f32; 
             normal,
             uv: [shade(shallow(o[0] + position[0], o[1] + position[2])), 0.5],
             tangent: [1.0, 0.0, 0.0, 1.0],
+            color: [1.0; 4],
         });
     }
 }

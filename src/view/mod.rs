@@ -485,6 +485,8 @@ fn light(scene: &mut GameScene, name: &str, color: [f32; 3]) -> Entity {
         color,
         intensity: 0.0,
         range: 1.0,
+        shadows: false,
+        radius: 0.0,
     });
     e
 }

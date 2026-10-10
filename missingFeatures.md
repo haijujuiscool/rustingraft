@@ -1,7 +1,7 @@
 # Missing in RustingEngine
 
 Things Rusting Raft needed that RustingEngine does not have yet (checked against
-RustingEngine 2.3.0, 61ab8e9). Each entry says what the game wrote instead, so the
+RustingEngine 2.4.0, eab24f3). Each entry says what the game wrote instead, so the
 workaround can go once the engine has the feature.
 
 ## Features
@@ -124,6 +124,11 @@ stays where the old clip left it.
 
 ## Bugs seen
 
+- 2.4.0 does not build without a Vulkan SDK, where `shaderc-sys` 0.8.3 builds its own
+  glslang: `const float SIXTH = uintBitsToFloat(0x3E2AAAABu);`
+  (`src/shaders/compute/cloth.comp:23`) fails with "global const initializers must be
+  constant", because that glslang does not fold `uintBitsToFloat`. The literal
+  `0.16666667` rounds to the same float (0x3E2AAAAB) and builds with every glslang.
 - `run_relay` returns on the first failed `accept` (`let stream = stream?;`,
   `src/net.rs:359`). A transient error such as running out of file descriptors stops
   the whole relay; `continue` (maybe after a short sleep) keeps it serving.
