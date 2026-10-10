@@ -526,6 +526,15 @@ impl Local {
         *self = Local::default();
     }
 
+    /// Game over: `update` no longer runs, so it never played "die" if everyone went
+    /// down on one tick (solo).
+    pub fn lie_down(&mut self, scene: &mut GameScene) {
+        if self.anim != "die" {
+            self.anim = "die";
+            scene.crossfade(AVATAR, "die", 0.15);
+        }
+    }
+
     /// Called for `UiAction::BeginPlacement`.
     pub fn begin_placement(&mut self, recipe: RecipeId) {
         if build::placeable(recipe) {

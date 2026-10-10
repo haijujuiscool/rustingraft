@@ -132,6 +132,9 @@ impl Game {
                 self.local.update(scene, frame, modal, &mut requests);
             } else {
                 scene.set_mouse_look(player::PLAYER, false);
+                if self.phase == AppPhase::GameOver {
+                    self.local.lie_down(scene);
+                }
             }
             let actions = self.ui.draw(
                 scene,
@@ -155,7 +158,7 @@ impl Game {
                 session.request(req);
             }
         }
-        self.follow_host();
+        self.follow_host(scene);
         for action in actions {
             self.act(scene, action);
         }
@@ -201,7 +204,7 @@ impl Game {
                 (Ok((world, text)), Some(session)) => {
                     session.replace_world(world);
                     session.restore_owners(&text);
-                    self.local = Local::default();
+                    self.local.clear(scene);
                     self.phase = AppPhase::Playing;
                 }
                 (Err(err), _) => self.events.push(Event::Toast {
@@ -248,7 +251,7 @@ impl Game {
 
     /// A client in GameOver plays on once the host's reload brings its player back up.
     // ponytail: guesses the reload from our own player, a host->client message if it misfires.
-    fn follow_host(&mut self) {
+    fn follow_host(&mut self, scene: &mut GameScene) {
         if self.phase != AppPhase::GameOver {
             return;
         }
@@ -261,7 +264,7 @@ impl Game {
             .and_then(|(w, me)| w.player(me))
             .is_some_and(|p| p.connected && !p.downed);
         if up {
-            self.local = Local::default();
+            self.local.clear(scene);
             self.phase = AppPhase::Playing;
         }
     }
