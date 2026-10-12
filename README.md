@@ -5,7 +5,7 @@ catch to Barnaby on Hook Isle, shred floating debris into wood and metal, grow t
 the campfire through five levels, build farms, rescue survivors by radio and sail out to
 harder islands. Days last 5 minutes, nights 1 minute: stay near the fire after dark.
 
-Built with [RustingEngine](https://github.com/GoingRusting/RustingEngine) 2.4.0. A full run
+Built with [RustingEngine](https://github.com/GoingRusting/RustingEngine) 2.4.1. A full run
 takes 1 to 2 hours.
 
 ## Play

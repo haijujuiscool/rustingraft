@@ -1,7 +1,7 @@
 # Missing in RustingEngine
 
 Things Rusting Raft needed that RustingEngine does not have yet (checked against
-RustingEngine 2.4.0, eab24f3). Each entry says what the game wrote instead, so the
+RustingEngine 2.4.1, 10e9702). Each entry says what the game wrote instead, so the
 workaround can go once the engine has the feature.
 
 ## Features
@@ -121,11 +121,6 @@ stays where the old clip left it.
 
 ## Bugs seen
 
-- 2.4.0 does not build without a Vulkan SDK, where `shaderc-sys` 0.8.3 builds its own
-  glslang: `const float SIXTH = uintBitsToFloat(0x3E2AAAABu);`
-  (`src/shaders/compute/cloth.comp:23`) fails with "global const initializers must be
-  constant", because that glslang does not fold `uintBitsToFloat`. The literal
-  `0.16666667` rounds to the same float (0x3E2AAAAB) and builds with every glslang.
 - The frame cap (`FramePacer::request_next_frame`, `src/rendering/frame_pacer.rs:77`)
   sets `next_frame = now + interval` from the moment the loop wakes, so each late wake
   from `ControlFlow::WaitUntil` adds to the period and the rate settles below the cap.
