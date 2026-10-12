@@ -271,7 +271,8 @@ def fix_paths(obj, prefix):
     if isinstance(obj, list):
         return [fix_paths(v, prefix) for v in obj]
     if isinstance(obj, str) and ASSET_RE.match(obj):
-        return ASSET_RE.sub(lambda _m: prefix, obj)
+        # `/` works on Windows and Linux; `scene add-model` on Windows writes `\`.
+        return ASSET_RE.sub(lambda _m: prefix, obj).replace("\\", "/")
     return obj
 
 
@@ -431,7 +432,7 @@ def model(rel, name, parent=None, pos=(0, 0, 0), rot=(0, 0, 0), scale=1.0, ancho
             if m and emissive:
                 m["emissive"] = vec(emissive)
             mr["cast_shadows"] = bool(shadows and mr.get("cast_shadows", True))
-            sec["mesh_renderer"] = fix_paths(mr, "..\\assets\\")
+            sec["mesh_renderer"] = fix_paths(mr, "../assets/")
             if solid or ground:
                 sec.update(fixed("ConvexMesh"))
         if comps:
@@ -1669,7 +1670,7 @@ def dup(root, new_root, pos, visible=True):
     return out
 
 
-CAP_PREFIX = r"..\..\assets" + "\\"  # asset paths seen from build/capture/
+CAP_PREFIX = "../../assets/"  # asset paths seen from build/capture/
 
 
 def capture(views):
